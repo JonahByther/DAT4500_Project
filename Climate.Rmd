@@ -7,6 +7,7 @@ output: openintro::lab_report
 
 ```{r load-packages, message=FALSE}
 library(tidyverse)
+ksksks
 ```
 
 ### Recreate Graph 1
