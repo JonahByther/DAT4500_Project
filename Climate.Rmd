@@ -2,7 +2,9 @@
 title: "Lab Name"
 author: "Author Name"
 date: "`r Sys.Date()`"
-output: github_document
+output: 
+    html_document:
+      keep_md: true
 ---
 
 ```{r load-packages, message=FALSE}
@@ -62,6 +64,7 @@ WA_county_summer <- WA_county |>
 
 ggplot(WA_county_summer, aes(x = DATE, y = TAVG))+
   geom_point()
+
 ```
 
 
