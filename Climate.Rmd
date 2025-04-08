@@ -2,11 +2,17 @@
 title: "Lab Name"
 author: "Author Name"
 date: "`r Sys.Date()`"
-output: openintro::lab_report
+output: 
+    html_document:
+      keep_md: true
 ---
 
 ```{r load-packages, message=FALSE}
 library(tidyverse)
+library(usmap)
+library(lubridate)
+library(sf)
+WA_county <- read.csv("WA_county.csv")
 ```
 
 ### Recreate Graph 1
@@ -28,6 +34,26 @@ Insert any text here.
 ### Data for Washington Graph
 
 ```{r}
+us_states <- us_map()
+us_county <- us_map(region = "counties",)
+WA_county_map <- us_county |>
+  filter(full == "Washington")
+
+WA_county_map <- WA_county |>
+  left_join(WA_county_map, by=c("COUNTY" = "county"))
+
+WA_county_map1 <- WA_county_map |>
+  filter(year(DATE) == 1999)
+
+WA_county_map1 <- st_as_sf(WA_county_map1)
+ggplot(WA_county_map1)+
+  geom_sf(aes(fill = TAVG))+
+  labs(
+    title = "Average temp by county in 1999",
+    subtitle = "WA counties temp data", 
+    fill = "AVG Temp (F)"
+  )
+
 
 ```
 
