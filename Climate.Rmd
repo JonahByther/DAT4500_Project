@@ -11,9 +11,8 @@ output:
 library(tidyverse)
 library(usmap)
 library(lubridate)
+library(sf)
 WA_county <- read.csv("WA_county.csv")
-D <- read.csv("Douglas.csv")
-W <- read.csv("Whatcom.csv")
 ```
 
 ### Recreate Graph 1
@@ -40,72 +39,22 @@ us_county <- us_map(region = "counties",)
 WA_county_map <- us_county |>
   filter(full == "Washington")
 
-missing_cols <- setdiff(names(WA_county), names(W))
-for (col in missing_cols) {
-  W[[col]] <- NA  # Add as empty column
-}
-
-# Reorder columns
-W <- W[, names(WA_county)]
-
-WA_county <- rbind(WA_county, W)
-
-
-
-WA_county |>
-  filter(STATION == "USC00457185")
-
-WA_county$COUNTY <- ifelse(WA_county$STATION == "USC00457507", "Skagit County",
-                    ifelse(WA_county$STATION == "USC00451504", "Kittitas County",
-                    ifelse(WA_county$STATION == "USC00451767", "Clark County",
-                    ifelse(WA_county$STATION == "USW00024219",  "Grant County",
-                    ifelse(WA_county$STATION == "USC00452914", "Klickitat County",
-                    ifelse(WA_county$STATION == "USC00455224", "Clallam County",
-                    ifelse(WA_county$STATION == "USW00094225",  "Pierce County",
-                    ifelse(WA_county$STATION == "USC00451484", "Grays Harbor County",
-                           ifelse(WA_county$STATION == "USC00456789", "Whitman County",
-                    ifelse(WA_county$STATION == "USC00456914", "Pacific County",
-                    ifelse(WA_county$STATION == "USC00454679", "Adams County",
-                    ifelse(WA_county$STATION == "USC00457185", "Whatcom County",
-                    ifelse(WA_county$STATION == "USW00024157",  "Spokane County",
-                    ifelse(WA_county$STATION == "USC00455525", "Snohomish County",
-                    ifelse(WA_county$STATION == "USR0000WALD", "Garfield County",
-                    ifelse(WA_county$STATION == "USC00450844",  "Pend Oreille County",
-                    ifelse(WA_county$STATION == "USW00024233", "King County",
-                           ifelse(WA_county$STATION == "USC00452030", "Columbia County",
-                    ifelse(WA_county$STATION == "USW00024255", "Island County",
-                    ifelse(WA_county$STATION == "USC00456846", "Jefferson County",
-                    ifelse(WA_county$STATION == "USC00459376",  "Okanogan County",
-                    ifelse(WA_county$STATION == "USC00451939", "Mason County",
-                    ifelse(WA_county$STATION == "USC00454154", "Franklin County",
-                    ifelse(WA_county$STATION == "USW00024160",  "Walla Walla County",
-                    ifelse(WA_county$STATION == "USW00024243", "Yakima County",
-                           ifelse(WA_county$STATION == "USW00094239", "Douglas County",
-                    ifelse(WA_county$STATION == "USW00024227", "Thurston County",
-                    ifelse(WA_county$STATION == "USC00451205", "Wahkiakum County",
-                    ifelse(WA_county$STATION == "USC00451395",  "Stevens County",
-                    ifelse(WA_county$STATION == "USC00457696", "Skamania County",
-                    ifelse(WA_county$STATION == "USC00450294", "Asotin County",
-                    ifelse(WA_county$STATION == "USC00456096",  "San Juan County",
-                    ifelse(WA_county$STATION == "USC00456974", "Ferry County",
-                           ifelse(WA_county$STATION == "USC00451350", "Chelan County",
-                    ifelse(WA_county$STATION == "USC00455110",  "Lewis County",
-                    ifelse(WA_county$STATION == "USC00459238", "Lincoln County",
-                    ifelse(WA_county$STATION == "USC00450872", "Kitsap County",
-                    ifelse(WA_county$STATION == "USC00454769",  "Cowlitz County",
-                    ifelse(WA_county$STATION == "USC00457015", "Benton County",
-                           NA)))))))))))))))))))))))))))))))))))))))
-
-WA_county$DATE <- as.Date(paste0(WA_county$DATE, "-01"))
 WA_county |>
   filter(COUNTY == "Douglas County")
 WA_county_summer <- WA_county |>
-  filter(month(DATE) == 12, COUNTY == "Clallam County")
+  filter(COUNTY == "Clallam County")
 
 
+WA_county_map <- WA_county |>
+  left_join(WA_county_map, by=c("COUNTY" = "county"))
 
-ggplot(WA_county_summer, aes(x = DATE, y = TAVG))+
-  geom_point()
+WA_county_map1 <- WA_county_map |>
+  filter(year(DATE) == 1999)
+
+WA_county_map1 <- st_as_sf(WA_county_map1)
+ggplot(WA_county_map1)+
+  geom_sf(aes(fill = TAVG))
+
 
 ```
 
