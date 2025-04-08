@@ -39,12 +39,6 @@ us_county <- us_map(region = "counties",)
 WA_county_map <- us_county |>
   filter(full == "Washington")
 
-WA_county |>
-  filter(COUNTY == "Douglas County")
-WA_county_summer <- WA_county |>
-  filter(COUNTY == "Clallam County")
-
-
 WA_county_map <- WA_county |>
   left_join(WA_county_map, by=c("COUNTY" = "county"))
 
@@ -53,7 +47,12 @@ WA_county_map1 <- WA_county_map |>
 
 WA_county_map1 <- st_as_sf(WA_county_map1)
 ggplot(WA_county_map1)+
-  geom_sf(aes(fill = TAVG))
+  geom_sf(aes(fill = TAVG))+
+  labs(
+    title = "Average temp by county in 1999",
+    subtitle = "WA counties temp data", 
+    fill = "AVG Temp (F)"
+  )
 
 
 ```
