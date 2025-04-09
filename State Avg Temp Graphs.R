@@ -2,6 +2,7 @@ library(tidyverse)
 library(dplyr)
 library(data.table)
 library(mgsub)
+library(usmap)
 
 #--------------------------Initial Florida Graph-------------------------------#
 # Codebook:
@@ -106,6 +107,59 @@ for(x in unique(CSVfiles)){
 
 #Save new data set
 write.csv(stateTemp, "avg_state_temps.csv")
+
+
+#-------------------------Average State Temperature Maps-----------------------#
+
+#Read in state temp data
+state_temp <- read_csv("avg_state_temps.csv") |> 
+  select(-...1)
+
+# Create geometries for US map and map theme
+us_states <- us_map()
+my_map_theme <- function(){
+  theme(panel.background=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank())
+}
+
+map_data <- us_states |> 
+  filter(abbr != "DC") |> 
+  left_join(state_temp, by=c("abbr" = "state"))
+
+#Create map
+ggplot(map_data) +
+  geom_sf(aes(fill = temp1900)) +
+  scale_fill_gradient(
+    low = "blue", high = "red", na.value = "grey50", name = "Temperature (F°)"
+    ) +
+  my_map_theme() +
+  labs(
+    title = "Average State Temperatures in 1924",
+    caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+  ) +
+  theme(
+    plot.title = element_text(hjust = .8,)
+  )
+
+
+#Create change map
+map_data |> 
+  mutate(change = temp2024 - temp2000) |> 
+    ggplot() +
+      geom_sf(aes(fill = change)) +
+      scale_fill_gradient2(
+        low = "blue", mid = "white", high = "red", na.value = "grey50", name = "Temperature (F°)"
+        ) +
+      my_map_theme()+
+  labs(
+    title = "Change in Average State Temperature from 2000 to 2024",
+    caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0,)
+  )
 
 
 
