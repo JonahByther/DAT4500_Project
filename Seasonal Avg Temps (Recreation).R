@@ -1,5 +1,6 @@
 library(tidyverse)
 library(openintro)
+library(plotly)
 
 # Reads csv file
 winter_temps_anomalies <- read.csv("winter-temperature-anomalies.csv") 
@@ -25,7 +26,7 @@ winter_temps_anomalies_v2 <- winter_temps_anomalies_v2|>
   mutate(temp_color = ifelse(average_temp < 0, "red", "blue" ))
 
 #Plotting column graph
-ggplot(winter_temps_anomalies_v2, aes(x = Year, y = average_temp, fill = temp_color)) +
+season_plot <- ggplot(winter_temps_anomalies_v2, aes(x = Year, y = average_temp, fill = temp_color)) +
   geom_col() +
   theme(legend.position = "none") +
   facet_wrap(~Month) +
@@ -33,4 +34,22 @@ ggplot(winter_temps_anomalies_v2, aes(x = Year, y = average_temp, fill = temp_co
           subtitle = "Calculated as difference between average surface temperature from the mean temperature\n of the same month during the period 1991-2020.") +
   ylab("Average Temperature, measured in Celsius")
 
+#Interactivity in plot
+p <- winter_temps_anomalies_v2 |>
+  mutate(text = paste("Year:", Year, "</b>",
+                      "<br>World:", round(average_temp, 2), "\u00B0C")) |>
+  ggplot(aes(x = Year, y = average_temp, fill = temp_color)) +
+  geom_col(aes(text = text)) +
+  theme(legend.position = "none") +
+  facet_wrap(~Month) +
+  ggtitle("Winter Temperature Anomalies, World",
+          subtitle = "Calculated as difference between average surface temperature from the mean temperature\n of the same month during the period 1991-2020.") +
+  ylab("Average Temperature, measured in Celsius")
+
+ggplotly(p, tooltip = "text")
+
+#If you want to download image
+png("season_plot.png")
+print(season_plot)
+dev.off()
 
