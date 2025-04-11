@@ -128,23 +128,73 @@ map_data <- us_states |>
   filter(abbr != "DC") |> 
   left_join(state_temp, by=c("abbr" = "state"))
 
-#Create map
-ggplot(map_data) +
-  geom_sf(aes(fill = temp1900)) +
-  scale_fill_gradient(
-    low = "blue", high = "red", na.value = "grey50", name = "Temperature (F°)"
-    ) +
-  my_map_theme() +
-  labs(
-    title = "Average State Temperatures in 1924",
-    caption = "Data from NOAA's Global Summary of the Year (GSOY)"
-  ) +
-  theme(
-    plot.title = element_text(hjust = .8,)
-  )
+
+#Prepare color schemes for graphs
+year_cutpoints <- c(0, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 100)
+year_labels <- c("Below 30","30-35", "35-40", "40-45","45-50", "50-55", 
+               "55-60", "60-65", "65-70", "70-75", "Above 75")
+year_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#f6e8fc",
+               "#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
+
+change_cutpoints <- c(-20, -2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5, 20)
+change_labels <- c("More than -2.5","-2.5 to -2", "-2 to -1.5", "-1.5 to -1",
+                   "-1 to -.5", "-.5 to 0", "0 to .5", ".5 to 1", "1 to 1.5", 
+                   "1.5 to 2", "2 to 2.5", "More than 2.5")
+change_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#eef4f7",
+                 "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
 
 
-#Create change map
+#Function to create map for a specific year
+year_map <- function(yr) {
+  map_data |> 
+    select(full, geom, paste("temp", yr, sep = "")) |> 
+    rename(temp = paste("temp", yr, sep = "")) |> 
+    mutate(range = cut(temp, breaks = year_cutpoints, labels = year_labels)) |> 
+    ggplot() +
+      geom_sf(aes(fill = range)) +
+      scale_fill_manual("Temperature (F°)", values = year_colors, drop = F) +
+      my_map_theme() +
+      labs(
+        title = paste("Average State Temperatures in ", yr, sep = ""),
+        caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+      ) +
+      theme(
+        plot.title = element_text(hjust = .8,)
+      )
+  
+}
+
+year_map(2024)
+
+#Function to create change map (specifically for shiny app)
+change_map <- function(yr1, yr2 = yr1 - 1) {
+  map_data |> 
+    select(full, geom, paste("temp", yr1, sep = ""), paste("temp", yr2, sep = "")) |> 
+    rename(
+      temp1 = paste("temp", yr1, sep = ""),
+      temp2 = paste("temp", yr2, sep = ""),
+      ) |> 
+    mutate(
+      temp_diff = temp1 - temp2, 
+      difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels)
+      ) |> 
+    ggplot() +
+      geom_sf(aes(fill = difference)) +
+      scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
+      my_map_theme() +
+      labs(
+        title = paste("Change in Average State Temperature from ", yr2, " to ", yr1, sep = ""),
+        caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+      ) +
+      theme(
+        plot.title = element_text(hjust = 0,)
+      )
+}
+
+change_map(2018)
+
+
+#Create change map (Old code, continuous color scale)
 map_data |> 
   mutate(change = temp2024 - temp2000) |> 
     ggplot() +
@@ -153,13 +203,10 @@ map_data |>
         low = "blue", mid = "white", high = "red", na.value = "grey50", name = "Temperature (F°)"
         ) +
       my_map_theme()+
-  labs(
-    title = "Change in Average State Temperature from 2000 to 2024",
-    caption = "Data from NOAA's Global Summary of the Year (GSOY)"
-  ) +
-  theme(
-    plot.title = element_text(hjust = 0,)
-  )
-
-
-
+      labs(
+        title = "Change in Average State Temperature from 2000 to 2024",
+        caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+      ) +
+      theme(
+        plot.title = element_text(hjust = 0,)
+      )
