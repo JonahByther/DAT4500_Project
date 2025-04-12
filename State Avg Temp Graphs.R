@@ -191,7 +191,7 @@ change_map <- function(yr1, yr2 = yr1 - 1) {
       )
 }
 
-change_map(2018)
+change_map(1901)
 
 
 #Create change map (Old code, continuous color scale)
