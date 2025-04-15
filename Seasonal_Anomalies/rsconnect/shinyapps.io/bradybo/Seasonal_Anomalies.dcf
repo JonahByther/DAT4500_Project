@@ -1,0 +1,12 @@
+name: Seasonal_Anomalies
+title: Seasonal_Anomalies
+username: bradybo
+account: bradybo
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14512487
+bundleId: 10108672
+url: https://bradybo.shinyapps.io/Seasonal_Anomalies/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
