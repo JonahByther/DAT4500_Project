@@ -1,0 +1,12 @@
+name: US_Temperature_Changes
+title: US_Temperature_Changes
+username: mcuadros
+account: mcuadros
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14523872
+bundleId: 10115753
+url: https://mcuadros.shinyapps.io/US_Temperature_Changes/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
