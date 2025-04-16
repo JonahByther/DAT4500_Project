@@ -18,35 +18,35 @@ us_county <- us_map(region = "counties",)
 WA_county_map <- us_county |>
   filter(full == "Washington")
 
-county_year <- function(selected_year, selected_month) {
+county_year <- function(baseline_year, comparison_year, selected_month) {
   # Convert month name to number, unless "All Months"
   month_num <- match(selected_month, month.name)
   
   if (selected_month == "All Months") {
-    baseline_1985 <- WA_county |>
-      filter(year(DATE) == 1985) |>
+    baseline_data <- WA_county |>
+      filter(year(DATE) == baseline_year) |>
       group_by(COUNTY) |>
       summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
     
     selected_data <- WA_county |>
-      filter(year(DATE) == selected_year) |>
+      filter(year(DATE) == comparison_year) |>
       group_by(COUNTY) |>
       summarise(TAVG = mean(TAVG, na.rm = TRUE))
     
   } else {
-    baseline_1985 <- WA_county |>
-      filter(year(DATE) == 1985, month(DATE) == month_num) |>
+    baseline_data <- WA_county |>
+      filter(year(DATE) == baseline_year, month(DATE) == month_num) |>
       group_by(COUNTY) |>
       summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
     
     selected_data <- WA_county |>
-      filter(year(DATE) == selected_year, month(DATE) == month_num) |>
+      filter(year(DATE) == comparison_year, month(DATE) == month_num) |>
       group_by(COUNTY) |>
       summarise(TAVG = mean(TAVG, na.rm = TRUE))
   }
   
   comparison_data <- selected_data |>
-    left_join(baseline_1985, by = "COUNTY") |>
+    left_join(baseline_data, by = "COUNTY") |>
     mutate(temp_diff = TAVG - baseline_TAVG) |>
     mutate(
       temp_category = cut(
@@ -80,9 +80,9 @@ county_year <- function(selected_year, selected_month) {
     ) +
     labs(
       title = if (selected_month == "All Months") {
-        paste("Change in Avg Temp (Annual)", selected_year, "vs 1985")
+        paste("Change in Avg Temp (Annual)", baseline_year, "vs ", comparison_year)
       } else {
-        paste("Change in Avg Temp (", selected_month, ") ", selected_year, "vs 1985")
+        paste("Change in Avg Temp (", selected_month, ") ", baseline_year, "vs ", comparison_year)
       }
       ,
       fill = "Temp Diff (°F)"
@@ -103,11 +103,11 @@ ui <- fluidPage(
   # Sidebar with a slider input for number of bins 
   sidebarLayout(
     sidebarPanel(
-      sliderInput("year",
-                  "Select a year:",
-                  min = 1986,
+      sliderInput("year_range",
+                  "Select a year range:",
+                  min = 1985,
                   max = 2024,
-                  value = 1986,
+                  value = c(1985, 2000),
                   ticks = FALSE,
                   animate = animationOptions(interval = 1500)
                   
@@ -129,7 +129,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   output$changePlot <- renderPlot({
-    county_year(input$year, input$month)
+    county_year(input$year_range[1], input$year_range[2], input$month)
   })
 }
 

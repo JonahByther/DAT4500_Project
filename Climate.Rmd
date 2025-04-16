@@ -33,21 +33,25 @@ Insert any text here.
 
 ### Data for Washington Graph
 
-starting in 2000, garfield county was always 10 degrees colder than it was in 1985
+If you do it by years, it gets janky because not all years contain all months, so a year could be missing all winter months, so it's better to have a month in it.
 
 ```{r}
 us_county <- us_map(region = "counties",)
 WA_county_map <- us_county |>
   filter(full == "Washington")
 baseline_1985 <- WA_county |>
-    filter(year(DATE) == 1985) |>
+    filter(year(DATE) == 1985, month(DATE) == 10) |>
     group_by(COUNTY) |>
     summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
+
+baseline_1985
   
   selected_data <- WA_county |>
-    filter(year(DATE) == 2024) |>
+    filter(year(DATE) == 2024, month(DATE) == 10) |>
     group_by(COUNTY) |>
     summarise(TAVG = mean(TAVG, na.rm = TRUE))
+  
+selected_data
   
   comparison_data <- selected_data |>
     left_join(baseline_1985, by = "COUNTY") |>
