@@ -3,6 +3,7 @@ library(dplyr)
 library(data.table)
 library(mgsub)
 library(usmap)
+library(plotly)
 
 #--------------------------Initial Florida Graph-------------------------------#
 # Codebook:
@@ -210,3 +211,35 @@ map_data |>
       theme(
         plot.title = element_text(hjust = 0,)
       )
+
+#Attempt to animate graph - Can't get to work!
+test <- function(yr1, yr2 = yr1 - 1) {
+  plot <- map_data |> 
+    select(full, geom, paste("temp", yr1, sep = ""), paste("temp", yr2, sep = "")) |> 
+    rename(
+      temp1 = paste("temp", yr1, sep = ""),
+      temp2 = paste("temp", yr2, sep = ""),
+    ) |> 
+    mutate(
+      temp_diff = temp1 - temp2, 
+      difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels),
+      text = paste("<b>", full,"</b>\nAverage temperature in ", yr1, ": ", temp1, "F°", sep = "")
+    ) |> 
+    ggplot() +
+    geom_sf(aes(fill = difference, text = text), color = "black") +
+    #scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
+    scale_fill_gradientn(name = "", colors = change_colors, breaks= change_cutpoints) +
+    my_map_theme() +
+    labs(
+      title = paste("Change in Average State Temperature from ", yr2, " to ", yr1, sep = ""),
+      caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0,)
+    )
+  
+  ggplotly(plot, tooltip = "text") |>
+    style(hoveron = "fill")
+}
+
+test(1901)
