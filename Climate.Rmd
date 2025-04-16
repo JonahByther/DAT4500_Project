@@ -13,7 +13,9 @@ library(usmap)
 library(dplyr)
 library(lubridate)
 library(sf)
+library(plotly)
 
+temp_anomalies <- read.csv("country-level-monthly-temperature-anomalies.csv")
 WA_county <- read.csv("WA_county.csv")
 state_temp <- read_csv("avg_state_temps.csv") |> 
   select(-...1)
@@ -27,10 +29,47 @@ Insert any text here.
 # Insert code for Exercise 1 here
 ```
 
-### Recreate Graph 2
+### Recreate Graph 2 - Seasonal Anomalies
 
+Max anomaly months were in the fall season. This could mean that fall is substantially increasing in temperature compared to the other seasons, compared to the baseline 1991-2020. The reasoning behind the sharper increase is unknown. It could be many factors such as summer is becoming longer which means hotter days are in September and on.
 
 ```{r}
+# Rounding to 2 decimal places to replicate DF
+temp_anomalies_v2 <- temp_anomalies |>
+  mutate(across(January:December, ~ round(.x, 2)))
+
+#Restructuring of data
+temp_anomalies_v2 <- temp_anomalies_v2 |>
+  pivot_longer(cols = c(January:December), names_to = "Month", values_to = "anomaly_temp") |>
+  mutate(temp_color = ifelse(average_temp < 0, "red", "blue" ))
+
+#Creating Seasons to input in filter
+winter_months <- c("December", "January", "February")
+spring_months <- c("March", "April", "May")
+summer_months <- c("June", "July", "August")
+fall_months <- c("September", "October", "November")
+
+#Interactivity in plot
+p <- temp_anomalies_v2 |>
+  mutate(text = paste("Year:", Year, "</b>",
+                      "<br>World:", anomaly_temp, "(\u00B0C)")) |>
+  filter(Month %in% winter_months) |>
+  ggplot(aes(x = Year, y = anomaly_temp, fill = temp_color)) +
+  geom_col(aes(text = text)) +
+  theme(legend.position = "none") +
+  facet_wrap(~Month) +
+  labs(title = "Temperature anomalies by month, World \n Calculated as difference between average surface temperature from the mean temperature of the same month during the period 1991-2020.") +
+  ylab("Average Temperature, measured in Celsius")
+
+ggplotly(p, tooltip = "text")
+
+#Displays max temps by month and year
+temp_anomalies_v2 |>
+  group_by(Month) |>
+  filter(anomaly_temp == max(anomaly_temp, na.rm = TRUE)) |>
+  select(Month, anomaly_temp, Year) |>
+  arrange(desc(anomaly_temp))
+
 
 ```
 

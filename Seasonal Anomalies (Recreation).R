@@ -29,7 +29,7 @@ temp_anomalies_v2 <- temp_anomalies |>
 
 #Restructuring data
 temp_anomalies_v2 <- temp_anomalies_v2 |>
-  pivot_longer(cols = c(January:December), names_to = "Month", values_to = "average_temp") 
+  pivot_longer(cols = c(January:December), names_to = "Month", values_to = "anomaly_temp") 
 
 #Baseline year to find anomalies value
 baseline <- temp_anomalies |>
@@ -58,7 +58,7 @@ temp_anomalies_v2 <- temp_anomalies_v2 |>
   mutate(temp_color = ifelse(average_temp < 0, "red", "blue" ))
 
 #Plotting column graph
-season_plot <- ggplot(temp_anomalies_v2, aes(x = Year, y = average_temp, fill = temp_color)) +
+season_plot <- ggplot(temp_anomalies_v2, aes(x = Year, y = anomaly_temp, fill = temp_color)) +
   geom_col() +
   theme(legend.position = "none") +
   facet_wrap(~Month) +
@@ -75,9 +75,9 @@ fall_months <- c("September", "October", "November")
 #Interactivity in plot
 p <- temp_anomalies_v2 |>
   mutate(text = paste("Year:", Year, "</b>",
-                      "<br>World:", average_temp, "(\u00B0C)")) |>
+                      "<br>World:", anomaly_temp, "(\u00B0C)")) |>
   filter(Month %in% winter_months) |>
-  ggplot(aes(x = Year, y = average_temp, fill = temp_color)) +
+  ggplot(aes(x = Year, y = anomaly_temp, fill = temp_color)) +
   geom_col(aes(text = text)) +
   theme(legend.position = "none") +
   facet_wrap(~Month) +
@@ -89,6 +89,6 @@ ggplotly(p, tooltip = "text")
 # Displays max temps by month and year
 temp_anomalies_v2 |>
   group_by(Month) |>
-  filter(average_temp == max(average_temp, na.rm = TRUE)) |>
-  select(Month, average_temp, Year) |>
-  arrange(desc(average_temp))
+  filter(anomaly_temp == max(anomaly_temp, na.rm = TRUE)) |>
+  select(Month, anomaly_temp, Year) |>
+  arrange(desc(anomaly_temp))
