@@ -18,7 +18,7 @@ temp_anomalies_v2 <- temp_anomalies |>
   mutate(across(January:December, ~ round(.x, 2)))
 
 #Tidying Data
-temp_anomalies_v2 <- temp_anomalies |>
+temp_anomalies_v2 <- temp_anomalies_v2 |>
   pivot_longer(cols = c(January:December), names_to = "Month", values_to = "average_temp") 
 
 #Defining Month Order to display plot correctly
