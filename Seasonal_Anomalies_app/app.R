@@ -30,7 +30,7 @@ temp_anomalies_v2 <- temp_anomalies_v2 |>
   mutate(temp_color = ifelse(average_temp < 0, "red", "blue" ),
          Month = factor(Month, levels = month_levels))
 
-#Funciton for plotting
+#Function for plotting
 season_bar_plot <- function(yr, yr2, season_name){
   
   season_months <- switch(season_name,
