@@ -11,11 +11,69 @@ if(!require(shiny)) install.packages('shiny')
 if(!require(tidyverse)) install.packages('tidyverse')
 if(!require(openintro)) install.packages('openintro')
 if(!require(plotly)) install.packages('plotly')
-library(usmap)
-library(lubridate)
-library(sf)
+if(!require(usmap)) install.packages('usmap')
+if(!require(dplyr)) install.packages('dplyr')
+if(!require(lubridate)) install.packages('lubridate')
+if(!require(sf)) install.packages('sf')
 
-### Seasonal Anomalies Code - Start
+###US Map Code - START
+
+state_temp <- read_csv("avg_state_temps.csv") |> 
+  select(-...1)
+
+# Create geometries for US map, create map theme and color scheme
+us_states <- us_map()
+my_map_theme <- function(){
+  theme(panel.background=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank())
+}
+
+map_data <- us_states |> 
+  filter(abbr != "DC") |> 
+  left_join(state_temp, by=c("abbr" = "state"))
+
+change_cutpoints <- c(-20, -2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5, 20)
+change_labels <- c("More than -2.5","-2.5 to -2", "-2 to -1.5", "-1.5 to -1",
+                   "-1 to -.5", "-.5 to 0", "0 to .5", ".5 to 1", "1 to 1.5", 
+                   "1.5 to 2", "2 to 2.5", "More than 2.5")
+change_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#eef4f7",
+                   "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
+
+
+
+
+change_map <- function(yr1, yr2 = yr1 - 1) {
+  map_data |> 
+    select(full, geom, paste("temp", yr1, sep = ""), paste("temp", yr2, sep = "")) |> 
+    rename(
+      temp1 = paste("temp", yr1, sep = ""),
+      temp2 = paste("temp", yr2, sep = ""),
+    ) |> 
+    mutate(
+      temp_diff = temp1 - temp2, 
+      difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels)
+    ) |> 
+    ggplot() +
+    geom_sf(aes(fill = difference)) +
+    scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
+    my_map_theme() +
+    labs(
+      title = paste("Change in Average Annual State Temperature from ", yr2, " to ", yr1, sep = ""),
+      subtitle = 
+        "Visualizing how temperatures in the US have changed over the last century on a year-to-year basis",
+      caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+    ) +
+    theme(
+      plot.title = element_text(size = 24, hjust = .3,), #Original hjust = 0
+      plot.subtitle = element_text(size = 16, hjust = .27,), #TWeaked for recording, del hjust
+      plot.caption = element_text(size = 14, hjust = 2.5,), #Tweaked for recording, del hjust
+      legend.position = "none"
+    )
+}
+
+### Seasonal Anomalies Code - START
 
 temp_anomalies <- read.csv("country-level-monthly-temperature-anomalies.csv")
 
@@ -61,8 +119,9 @@ season_bar_plot <- function(yr, yr2, season_name){
   
 }
 
+### Season Anomalies Code - END
 
-### WA County Code - Start
+### WA County Code - START
 
 WA_county <- read.csv("WA_county.csv")
 
@@ -145,7 +204,7 @@ line_graph <- function(selected_county, selected_month) {
     theme_minimal()
 }
 
-### WA County Code - End
+### WA County Code - END
 
 # UI
 ui <- fluidPage(
@@ -160,7 +219,7 @@ ui <- fluidPage(
                            selectInput("month", "Select a month:", choices = c("All Months", month.name), selected = "January")
                          ),
                          mainPanel(
-                           plotOutput("changePlot")
+                           plotOutput("county_mapPlot")
                          )
                        )
               ),
@@ -174,7 +233,7 @@ ui <- fluidPage(
                                        choices = c("All Months", month.name), selected = "All Months")
                          ),
                          mainPanel(
-                           plotOutput("linePlot")
+                           plotOutput("county_linePlot")
                          )
                        )
               ),
@@ -187,7 +246,8 @@ ui <- fluidPage(
                                        max = 2025,
                                        value = c(1940, 2025),
                                        step = 1,
-                                       sep = "")
+                                       sep = "",
+                                       ticks = FALSE)
                            ,
                            selectInput("season", "Select season:",
                                        choices = c("Winter", "Spring", "Summer", "Fall", "World"),
@@ -196,25 +256,48 @@ ui <- fluidPage(
                            plotlyOutput("seasonPlot")
                          )
                        )
+              ),
+              tabPanel("Year-to-Year Change in US Average Temperature",
+                       sidebarLayout(
+                         sidebarPanel(
+                           sliderInput("year",
+                                       "Select a year:",
+                                       min = 1924,
+                                       max = 2024,
+                                       value = 1924,
+                                       ticks = FALSE,
+                                       sep = "",
+                                       animate = animationOptions(interval = 500))
+                         ),
+                         mainPanel(
+                           plotOutput("USplot"),
+                           img(src = "legend.png", width = "80%", align = "right")
+                         )
+                       )
               )
   )
 )
+      
 
 
 
 # Server
 server <- function(input, output) {
   
-  output$changePlot <- renderPlot({
+  output$county_mapPlot <- renderPlot({
     county_year(input$year_range[1], input$year_range[2], input$month)
   })
   
-  output$linePlot <- renderPlot({
+  output$county_linePlot <- renderPlot({
     line_graph(input$line_county, input$line_month)
   })
   
   output$seasonPlot <- renderPlotly({
     season_bar_plot(input$yr[1], input$yr[2], input$season)
+  })
+  
+  output$USplot <- renderPlot({
+    change_map(input$year)
   })
 }
 
