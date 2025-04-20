@@ -28,25 +28,31 @@ map_data <- us_states |>
   filter(abbr != "DC") |> 
   left_join(state_temp, by=c("abbr" = "state"))
 
-change_cutpoints <- c(-20, -2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5, 20)
-change_labels <- c("More than -2.5","-2.5 to -2", "-2 to -1.5", "-1.5 to -1",
-                   "-1 to -.5", "-.5 to 0", "0 to .5", ".5 to 1", "1 to 1.5", 
-                   "1.5 to 2", "2 to 2.5", "More than 2.5")
+#change_cutpoints <- c(-20, -2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5, 20)
+#change_labels <- c("More than -2.5","-2.5 to -2", "-2 to -1.5", "-1.5 to -1",
+#                   "-1 to -.5", "-.5 to 0", "0 to .5", ".5 to 1", "1 to 1.5", 
+#                   "1.5 to 2", "2 to 2.5", "More than 2.5")
+#change_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#eef4f7",
+#                   "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
+
+change_cutpoints <- c(-20, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 20)
+change_labels <- c("More than -5","-5 to -4", "-4 to -3", "-3 to -2",
+                   "-2 to -1", "-1 to 0", "0 to 1", "1 to 2", "2 to 3", 
+                   "3 to 4", "4 to 5", "More than 5")
 change_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#eef4f7",
                    "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
 
 
 
 
-change_map <- function(yr1, yr2 = yr1 - 1) {
+change_map <- function(yr1) {
   map_data |> 
-    select(full, geom, paste("temp", yr1, sep = ""), paste("temp", yr2, sep = "")) |> 
+    select(full, geom, paste("temp", yr1, sep = ""), temp1974) |> 
     rename(
       temp1 = paste("temp", yr1, sep = ""),
-      temp2 = paste("temp", yr2, sep = ""),
     ) |> 
     mutate(
-      temp_diff = temp1 - temp2, 
+      temp_diff = temp1 - map_data$temp1974, 
       difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels)
     ) |> 
     ggplot() +
@@ -54,14 +60,17 @@ change_map <- function(yr1, yr2 = yr1 - 1) {
     scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
     my_map_theme() +
     labs(
-      title = paste("Change in Average Annual State Temperature from ", yr2, " to ", yr1, sep = ""),
+      title = ifelse(yr1 < 1975,
+                     paste("Difference in Average Annual State Temperature from ", yr1, " to 1974", sep = ""),
+                     paste("Difference in Average Annual State Temperature from 1974 to ", yr1, sep = "")
+      ),
       subtitle = 
-        "Visualizing how temperatures in the US have changed over the last century on a year-to-year basis",
+        "Visualizing how temperatures in the US have changed over the last century relative to temperatures in 1974",
       caption = "Data from NOAA's Global Summary of the Year (GSOY)"
     ) +
     theme(
-      plot.title = element_text(size = 24, hjust = .3,), #Original hjust = 0
-      plot.subtitle = element_text(size = 16, hjust = .27,), #TWeaked for recording, del hjust
+      plot.title = element_text(size = 24, hjust = .34,), #Original hjust = 0
+      plot.subtitle = element_text(size = 16, hjust = .27,), #Tweaked for recording, del hjust
       plot.caption = element_text(size = 14, hjust = 2.5,), #Tweaked for recording, del hjust
       legend.position = "none"
     )
@@ -91,7 +100,7 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
            plotOutput("changePlot"),
-           img(src = "legend.png", width = "80%", align = "right")
+           img(src = "legendV2.png", width = "80%", align = "right")
         )
     )
 )

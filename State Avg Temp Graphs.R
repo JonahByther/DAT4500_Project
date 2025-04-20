@@ -194,6 +194,35 @@ change_map <- function(yr1, yr2 = yr1 - 1) {
 
 change_map(1901)
 
+#Change map code V2
+change <- function(yr1) {
+  map_data |> 
+    select(full, geom, paste("temp", yr1, sep = ""), temp1974) |> 
+    rename(
+      temp1 = paste("temp", yr1, sep = ""),
+    ) |> 
+    mutate(
+      temp_diff = temp1 - map_data$temp1974, 
+      difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels)
+    ) |> 
+    ggplot() +
+    geom_sf(aes(fill = difference)) +
+    scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
+    my_map_theme() +
+    labs(
+      title = ifelse(yr1 < 1975,
+        paste("Change in Average State Temperature from ", yr1, " to 1974", sep = ""),
+        paste("Change in Average State Temperature from 1974 to", yr1, sep = "")
+      ),
+      caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0,)
+    )
+}
+
+change(1974)
+
 
 #Create change map (Old code, continuous color scale)
 map_data |> 
@@ -242,4 +271,4 @@ test <- function(yr1, yr2 = yr1 - 1) {
     style(hoveron = "fill")
 }
 
-test(1901)
+
