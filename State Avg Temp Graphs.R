@@ -4,6 +4,8 @@ library(data.table)
 library(mgsub)
 library(usmap)
 library(plotly)
+library(sf)
+library(scales)
 
 #--------------------------Initial Florida Graph-------------------------------#
 # Codebook:
@@ -137,12 +139,13 @@ year_labels <- c("Below 30","30-35", "35-40", "40-45","45-50", "50-55",
 year_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#f6e8fc",
                "#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
 
-change_cutpoints <- c(-20, -2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5, 20)
-change_labels <- c("More than -2.5","-2.5 to -2", "-2 to -1.5", "-1.5 to -1",
-                   "-1 to -.5", "-.5 to 0", "0 to .5", ".5 to 1", "1 to 1.5", 
-                   "1.5 to 2", "2 to 2.5", "More than 2.5")
+#Updated for newest version of graph
+change_cutpoints <- c(-20, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 20)
+change_labels <- c("More than -5","-5 to -4", "-4 to -3", "-3 to -2",
+                   "-2 to -1", "-1 to 0", "0 to 1", "1 to 2", "2 to 3", 
+                   "3 to 4", "4 to 5", "More than 5")
 change_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#eef4f7",
-                 "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
+                   "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
 
 
 #Function to create map for a specific year
@@ -211,17 +214,19 @@ change <- function(yr1) {
     my_map_theme() +
     labs(
       title = ifelse(yr1 < 1975,
-        paste("Change in Average State Temperature from ", yr1, " to 1974", sep = ""),
-        paste("Change in Average State Temperature from 1974 to", yr1, sep = "")
+                     paste("Difference in Average Annual State Temperature from ", yr1, " to 1974", sep = ""),
+                     paste("Difference in Average Annual State Temperature from 1974 to ", yr1, sep = "")
       ),
+      subtitle = 
+        "Visualizing how temperatures in the US have changed over the last century relative to temperatures in 1974",
       caption = "Data from NOAA's Global Summary of the Year (GSOY)"
     ) +
     theme(
-      plot.title = element_text(hjust = 0,)
+      legend.position = "none"
     )
 }
 
-change(1974)
+change(1924)
 
 
 #Create change map (Old code, continuous color scale)
@@ -241,34 +246,45 @@ map_data |>
         plot.title = element_text(hjust = 0,)
       )
 
-#Attempt to animate graph - Can't get to work!
-test <- function(yr1, yr2 = yr1 - 1) {
+#Attempt to make graph interactive - Can't get to work!
+test <- function(yr1) {
+  # Rescale cutpoints to 0–1 for gradientn
+  rescaled_vals <- rescale(change_cutpoints, to = c(0, 1))
+  
   plot <- map_data |> 
-    select(full, geom, paste("temp", yr1, sep = ""), paste("temp", yr2, sep = "")) |> 
-    rename(
-      temp1 = paste("temp", yr1, sep = ""),
-      temp2 = paste("temp", yr2, sep = ""),
-    ) |> 
+    select(full, geom, paste("temp", yr1, sep = ""), temp1974) |> 
+    rename(temp1 = paste("temp", yr1, sep = "")) |> 
     mutate(
-      temp_diff = temp1 - temp2, 
-      difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels),
-      text = paste("<b>", full,"</b>\nAverage temperature in ", yr1, ": ", temp1, "F°", sep = "")
+      temp_diff = temp1 - map_data$temp1974,
+      text = paste0(
+        "<b>", full, "</b><br>",
+        "Avg temp in ", yr1, ": <i>", signif(temp1, 3), "°F</i><br>",
+        "<i>", signif(temp_diff, 3), "°F</i> ",
+        ifelse(temp_diff >= 0, "hotter", "colder"), " than 1974"
+      )
     ) |> 
     ggplot() +
-    geom_sf(aes(fill = difference, text = text), color = "black") +
-    #scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
-    scale_fill_gradientn(name = "", colors = change_colors, breaks= change_cutpoints) +
+    geom_sf(aes(fill = temp_diff, text = text, group = full), color = "black") +
+    scale_fill_gradientn(
+      colors = change_colors,
+      values = rescaled_vals,
+      limits = range(change_cutpoints),
+      oob = scales::squish,
+      name = ""
+    ) +
     my_map_theme() +
     labs(
-      title = paste("Change in Average State Temperature from ", yr2, " to ", yr1, sep = ""),
+      title = ifelse(yr1 < 1975,
+                     paste("Difference in Avg Annual State Temp from ", yr1, " to 1974"),
+                     paste("Difference in Avg Annual State Temp from 1974 to ", yr1)),
+      subtitle = "Visualizing how temperatures in the US have changed relative to 1974",
       caption = "Data from NOAA's Global Summary of the Year (GSOY)"
     ) +
-    theme(
-      plot.title = element_text(hjust = 0,)
-    )
+    theme(legend.position = "none")
   
   ggplotly(plot, tooltip = "text") |>
     style(hoveron = "fill")
 }
 
+test(1924)
 
