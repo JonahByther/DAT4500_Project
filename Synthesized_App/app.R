@@ -15,6 +15,8 @@ if(!require(usmap)) install.packages('usmap')
 if(!require(dplyr)) install.packages('dplyr')
 if(!require(lubridate)) install.packages('lubridate')
 if(!require(sf)) install.packages('sf')
+if(!require(scales)) install.packages('scales')
+
 
 ###US Map Code - START
 
@@ -41,37 +43,52 @@ change_labels <- c("More than -2.5","-2.5 to -2", "-2 to -1.5", "-1.5 to -1",
 change_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#eef4f7",
                    "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
 
-
-
-
-change_map <- function(yr1, yr2 = yr1 - 1) {
-  map_data |> 
-    select(full, geom, paste("temp", yr1, sep = ""), paste("temp", yr2, sep = "")) |> 
-    rename(
-      temp1 = paste("temp", yr1, sep = ""),
-      temp2 = paste("temp", yr2, sep = ""),
-    ) |> 
+interactive_us <- function(yr1) {
+  # Rescale cutpoints to 0–1 for gradientn
+  rescaled_vals <- rescale(change_cutpoints, to = c(0, 1))
+  
+  plot <- map_data |> 
+    select(full, geom, paste("temp", yr1, sep = ""), temp1974) |> 
+    rename(temp1 = paste("temp", yr1, sep = "")) |> 
     mutate(
-      temp_diff = temp1 - temp2, 
-      difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels)
+      temp_diff = temp1 - map_data$temp1974,
+      text = paste0(
+        "<b>", full, "</b><br>",
+        "Avg temp in ", yr1, ": <i>", signif(temp1, 3), "°F</i><br>",
+        "<i>", signif(temp_diff, 3), "°F</i> ",
+        ifelse(temp_diff >= 0, "hotter", "colder"), " than 1974"
+      )
     ) |> 
     ggplot() +
-    geom_sf(aes(fill = difference)) +
-    scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
-    my_map_theme() +
-    labs(
-      title = paste("Change in Average Annual State Temperature from ", yr2, " to ", yr1, sep = ""),
-      subtitle = 
-        "Visualizing how temperatures in the US have changed over the last century on a year-to-year basis",
-      caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+    geom_sf(aes(fill = temp_diff, text = text, group = full), color = "black") +
+    scale_fill_gradientn(
+      colors = change_colors,
+      values = rescaled_vals,
+      limits = range(change_cutpoints),
+      oob = scales::squish,
+      name = ""
     ) +
+    my_map_theme() +
+    #labs(
+    #  title = ifelse(yr1 < 1975,
+    #               paste("Difference in Average Annual State Temp from", yr1, "to 1974"),
+    #               paste("Difference in Average Annual State Temp from 1974 to", yr1)),
+    #subtitle = "Visualizing how temperatures in the US have changed relative to 1974",
+    #caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+    #) +
     theme(
-      plot.title = element_text(size = 24, hjust = .3,), #Original hjust = 0
-      plot.subtitle = element_text(size = 16, hjust = .27,), #TWeaked for recording, del hjust
-      plot.caption = element_text(size = 14, hjust = 2.5,), #Tweaked for recording, del hjust
+      #plot.title = element_text(size = 24, hjust = .34,), #Original hjust = 0
+      #plot.subtitle = element_text(size = 16, hjust = .27,), #Tweaked for recording, del hjust
+      #plot.caption = element_text(size = 14, hjust = 2.5,), #Tweaked for recording, del hjust
       legend.position = "none"
     )
+  
+  ggplotly(plot, tooltip = "text") |>
+    style(hoveron = "fill")
 }
+
+### US Map Code - END
+
 
 ### Seasonal Anomalies Code - START
 
@@ -165,14 +182,14 @@ county_year <- function(baseline_year, comparison_year, selected_month) {
   ggplot(WA_county_map_sf) +
     geom_sf(aes(fill = temp_category), color = "white", size = 0.1) +
     scale_fill_manual(values = color_palette, name = "Temp Diff (°F)") +
-    labs(
-      title = if (selected_month == "All Months") {
-        paste("Change in Avg Temp (Annual)", baseline_year, "vs", comparison_year)
-      } else {
-        paste("Change in Avg Temp (", selected_month, ")", baseline_year, "vs", comparison_year)
-      },
-      fill = "Temp Diff (°F)"
-    ) +
+    #labs(
+      #title = if (selected_month == "All Months") {
+       # paste("Change in Avg Temp (Annual)", baseline_year, "vs", comparison_year)
+    #  } else {
+     #   paste("Change in Avg Temp (", selected_month, ")", baseline_year, "vs", comparison_year)
+      #},
+      #fill = "Temp Diff (°F)"
+    #) +
     theme_minimal()
 }
 
@@ -196,11 +213,11 @@ line_graph <- function(selected_county, selected_month) {
   ggplot(data, aes(x = Year, y = TAVG)) +
     geom_line(color = "steelblue", size = 1.2) +
     geom_point(color = "darkblue") +
-    labs(
-      title = paste("Avg Temp Over Time in", selected_county),
-      y = "Average Temp (°F)",
-      x = "Year"
-    ) +
+  #  labs(
+   #   title = paste("Avg Temp Over Time in", selected_county),
+    #  y = "Average Temp (°F)",
+     # x = "Year"
+    #) +
     theme_minimal()
 }
 
@@ -219,12 +236,14 @@ ui <- fluidPage(
                            selectInput("month", "Select a month:", choices = c("All Months", month.name), selected = "January")
                          ),
                          mainPanel(
-                           plotOutput("county_mapPlot")
+                           h3(textOutput("TitleText_map_county")),
+                           plotOutput("county_mapPlot"),
+                           h5("Data retrieved from National Oceanic and Atmospheric Association (NOAA)")
                          )
                        )
               ),
               
-              tabPanel("Line Chart Over Time",
+              tabPanel("County Temperature Over Time",
                        sidebarLayout(
                          sidebarPanel(
                            selectInput("line_county", "Select County:",
@@ -233,11 +252,13 @@ ui <- fluidPage(
                                        choices = c("All Months", month.name), selected = "All Months")
                          ),
                          mainPanel(
-                           plotOutput("county_linePlot")
+                           h3(textOutput("TitleText_line_county"), align = "middle"),
+                           plotOutput("county_linePlot"),
+                           h5("Data retrieved from National Oceanic and Atmospheric Association (NOAA)")
                          )
                        )
               ),
-              tabPanel("Seasonal Anomalies",
+              tabPanel("Seasonal Anomalies", value = "season_anomalies",
                        sidebarLayout(
                          sidebarPanel(
                            sliderInput("yr",
@@ -253,11 +274,15 @@ ui <- fluidPage(
                                        choices = c("Winter", "Spring", "Summer", "Fall", "World"),
                                        selected = "Winter")),
                          mainPanel(
-                           plotlyOutput("seasonPlot")
+                           h3(textOutput("TitleText_season"), align = "left"),
+                           h5("Calculated as difference between average surface temperature from the mean temperature\n 
+                              of the same month during the period 1991-2020."),
+                           plotlyOutput("seasonPlot"),
+                           h5("Data retrieved by World in Data, contains modified Copernicus Climate Change Service information (2025)")
                          )
                        )
               ),
-              tabPanel("Year-to-Year Change in US Average Temperature",
+              tabPanel(title = "United States Map",
                        sidebarLayout(
                          sidebarPanel(
                            sliderInput("year",
@@ -266,12 +291,18 @@ ui <- fluidPage(
                                        max = 2024,
                                        value = 1924,
                                        ticks = FALSE,
-                                       sep = "",
-                                       animate = animationOptions(interval = 500))
+                                       sep = ""
+                           )
                          ),
+                         
+                         # Show a plot of the generated distribution
                          mainPanel(
-                           plotOutput("USplot"),
-                           img(src = "legend.png", width = "80%", align = "right")
+                           h3(textOutput("TitleText_US"), align = "center"),
+                           h5("Displays the each state's average annual temperature and the difference
+                  in temperatures between the selected year an 1974", align = "center"),
+                           plotlyOutput("interactive_USPlot"),
+                           h5("Data from NOAA's Global Summary of the Year (GSOY)", align = "right"),
+                           img(src = "legendV2.png", width = "80%", align = "right")
                          )
                        )
               )
@@ -296,9 +327,28 @@ server <- function(input, output) {
     season_bar_plot(input$yr[1], input$yr[2], input$season)
   })
   
-  output$USplot <- renderPlot({
-    change_map(input$year)
+  output$interactive_USPlot <- renderPlotly({
+    interactive_us(input$year) 
   })
+  
+  output$TitleText_US <- renderText(
+    ifelse(input$year < 1975,
+           paste("Difference in Average Annual State Temp from", input$year, "to 1974"),
+           paste("Difference in Average Annual State Temp from 1974 to", input$year))
+  )
+  
+  output$TitleText_season <- renderText(
+   paste(input$season, "Temperature Anomalies")
+  )
+  
+  output$TitleText_line_county <- renderText(
+    paste0("Average Temperature Over Time in ", input$line_county, ", ", input$line_month)
+  )
+  
+  output$TitleText_map_county <- renderText(
+    paste0("Change in Average Temperature from ", input$year_range[1], " to ", input$year_range[2], ", ", input$month) 
+  )
+
 }
 
 # Run the application 
