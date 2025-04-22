@@ -1,6 +1,6 @@
 ---
-title: "Lab Name"
-author: "Author Name"
+title: "Climate Change Project Report"
+author: "Brady Boun, Jonah Byther, Mateo Cuadros, Lainey Mendoza"
 date: "`r Sys.Date()`"
 output: 
     html_document:
@@ -10,9 +10,15 @@ output:
 ```{r load-packages, message=FALSE}
 library(tidyverse)
 library(usmap)
+library(dplyr)
 library(lubridate)
 library(sf)
+library(plotly)
+
+temp_anomalies <- read.csv("country-level-monthly-temperature-anomalies.csv")
 WA_county <- read.csv("WA_county.csv")
+state_temp <- read_csv("avg_state_temps.csv") |> 
+  select(-...1)
 ```
 
 ### Recreate Graph 1
@@ -23,40 +29,176 @@ Insert any text here.
 # Insert code for Exercise 1 here
 ```
 
-### Recreate Graph 2
+### Recreate Graph 2 - Seasonal Anomalies
 
+Max anomaly months were in the fall season. This could mean that fall is substantially increasing in temperature compared to the other seasons, compared to the baseline 1991-2020. The reasoning behind the sharper increase is unknown. It could be many factors such as summer is becoming longer which means hotter days are in September and on.
 
 ```{r}
+# Rounding to 2 decimal places to replicate DF
+temp_anomalies_v2 <- temp_anomalies |>
+  mutate(across(January:December, ~ round(.x, 2)))
+
+#Restructuring of data
+temp_anomalies_v2 <- temp_anomalies_v2 |>
+  pivot_longer(cols = c(January:December), names_to = "Month", values_to = "anomaly_temp") |>
+  mutate(temp_color = ifelse(average_temp < 0, "red", "blue" ))
+
+#Creating Seasons to input in filter
+winter_months <- c("December", "January", "February")
+spring_months <- c("March", "April", "May")
+summer_months <- c("June", "July", "August")
+fall_months <- c("September", "October", "November")
+
+#Interactivity in plot
+p <- temp_anomalies_v2 |>
+  mutate(text = paste("Year:", Year, "</b>",
+                      "<br>World:", anomaly_temp, "(\u00B0C)")) |>
+  filter(Month %in% winter_months) |>
+  ggplot(aes(x = Year, y = anomaly_temp, fill = temp_color)) +
+  geom_col(aes(text = text)) +
+  theme(legend.position = "none") +
+  facet_wrap(~Month) +
+  labs(title = "Temperature anomalies by month, World \n Calculated as difference between average surface temperature from the mean temperature of the same month during the period 1991-2020.") +
+  ylab("Average Temperature, measured in Celsius")
+
+ggplotly(p, tooltip = "text")
+
+#Displays max temps by month and year
+temp_anomalies_v2 |>
+  group_by(Month) |>
+  filter(anomaly_temp == max(anomaly_temp, na.rm = TRUE)) |>
+  select(Month, anomaly_temp, Year) |>
+  arrange(desc(anomaly_temp))
+
 
 ```
 
 
 ### Data for Washington Graph
 
+If you do it by years, it gets janky because not all years contain all months, so a year could be missing all winter months, so it's better to have a month in it.
+
 ```{r}
-us_states <- us_map()
 us_county <- us_map(region = "counties",)
 WA_county_map <- us_county |>
   filter(full == "Washington")
+baseline_1985 <- WA_county |>
+    filter(year(DATE) == 1985, month(DATE) == 10) |>
+    group_by(COUNTY) |>
+    summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
 
-WA_county_map <- WA_county |>
-  left_join(WA_county_map, by=c("COUNTY" = "county"))
-
-WA_county_map1 <- WA_county_map |>
-  filter(year(DATE) == 1999)
-
-WA_county_map1 <- st_as_sf(WA_county_map1)
-ggplot(WA_county_map1)+
-  geom_sf(aes(fill = TAVG))+
-  labs(
-    title = "Average temp by county in 1999",
-    subtitle = "WA counties temp data", 
-    fill = "AVG Temp (F)"
+baseline_1985
+  
+  selected_data <- WA_county |>
+    filter(year(DATE) == 2024, month(DATE) == 10) |>
+    group_by(COUNTY) |>
+    summarise(TAVG = mean(TAVG, na.rm = TRUE))
+  
+selected_data
+  
+  comparison_data <- selected_data |>
+    left_join(baseline_1985, by = "COUNTY") |>
+    mutate(temp_diff = TAVG - baseline_TAVG)
+  
+  comparison_data <- comparison_data |>
+    mutate(
+      temp_category = cut(
+        temp_diff,
+        breaks = c(-Inf, -10, -5, 0, 5, 10, 15, Inf),
+        labels = c("<= -10", "-10 to -5", "-5 to 0", "0 to 5", "5 to 10", "10 to 15", "> 15"),
+        right = FALSE
+      )
+    )
+  
+  WA_county_map_joined <- WA_county_map |>
+    left_join(comparison_data, by = c("county" = "COUNTY"))
+  
+  WA_county_map_sf <- st_as_sf(WA_county_map_joined)
+  
+  color_palette <- c(
+    "<= -10" = "#08306B",  
+    "-10 to -5" = "#2171B5", 
+    "-5 to 0" = "#DEEBF7",  
+    "0 to 5" = "#FEE0D2",   
+    "5 to 10" = "#FC9272",  
+    "10 to 15" = "#CB181D", 
+    "> 15" = "#67000D"      
   )
+  
+  ggplot(WA_county_map_sf) +
+    geom_sf(aes(fill = temp_category), color = "white", size = 0.1) +
+    scale_fill_manual(
+      values = color_palette,
+      name = "Temp Diff (°F)"
+    ) +
+    labs(
+      title = paste("Change in Avg Temp in 2016 vs 1985"),
+      fill = "Temp Diff (°F)"
+    ) +
+    theme_minimal()
 
 
 ```
 
+### United States Average Temperature Exploration
+
+To better understand the context and implications of the temperature trends that occur in Washington State, we decided to compare the average temperature of Washington to the average temperature of every other state in the United States. This comparison helps us understand how the Washington's temperature changes may be similar or different to the changes in other states.
+```{r}
+us_states <- us_map()
+my_map_theme <- function(){
+  theme(panel.background=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank())
+}
+
+map_data <- us_states |> 
+  filter(abbr != "DC") |> 
+  left_join(state_temp, by=c("abbr" = "state"))
+
+change_cutpoints <- c(-20, -2.5, -2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2, 2.5, 20)
+change_labels <- c("More than -2.5","-2.5 to -2", "-2 to -1.5", "-1.5 to -1",
+                   "-1 to -.5", "-.5 to 0", "0 to .5", ".5 to 1", "1 to 1.5", 
+                   "1.5 to 2", "2 to 2.5", "More than 2.5")
+change_colors <- c("darkblue","#2166ac","#4393c3","#92c5de","#d1e5f0", "#eef4f7",
+                 "#f7e7e4","#fddbc7","#f4a582","#d6604d","#b2182b", "red4")
+
+change_map <- function(yr1, yr2 = yr1 - 1) {
+  map_data |> 
+    select(full, geom, paste("temp", yr1, sep = ""), paste("temp", yr2, sep = "")) |> 
+    rename(
+      temp1 = paste("temp", yr1, sep = ""),
+      temp2 = paste("temp", yr2, sep = ""),
+      ) |> 
+    mutate(
+      temp_diff = temp1 - temp2, 
+      difference = cut(temp_diff, breaks = change_cutpoints, labels = change_labels)
+      ) |> 
+    ggplot() +
+      geom_sf(aes(fill = difference)) +
+      scale_fill_manual("Change in Temperature (F°)", values = change_colors, drop = F) +
+      my_map_theme() +
+      labs(
+        title = paste("Change in Average State Temperature from ", yr2, " to ", yr1, sep = ""),
+        caption = "Data from NOAA's Global Summary of the Year (GSOY)"
+      ) +
+      theme(
+        plot.title = element_text(hjust = 0,)
+      )
+}
+```
+
+There are multiple ways to visualize the change in each state's average temperature over time, but not all methods are equally effective. For example, a line graph could be used to show how exact temperatures change over time. However, there are a few issues. First, displaying one line for each state on a graph would produce a cluttered, illegible graph. Second, if we were to facet the graph by state, we would end up with fifty facets, producing a graph that would require an exorbitant amount of space to be legible. As such, we chose to use a choropleth map.
+
+Even though the style of the graph was determined, we still needed to determine how to best show the change of temperature over time. One option would be to map each state's precise temperature over the years to see how it changes. While this approach seems intuitive, there are a few issues. First, the fill color requires a discrete scale, as it is nearly impossible to discern small changes in temperature. If a discrete scale were to be used, at least 27 bins, each covering a change of two degrees, would be required to cover the span average temperatures (21F to 71F in Alaska and Florida, respectively). This idea is unrealistic, as the graph could only capture multi-degree changes and would require at least 27 different colors.
+
+The alternative approach (and the method we used) is to track the change in temperature from one year to the next. This method allows us to visualize more precise changes in temperature from year to year. Additionally, it also makes it easier to identify nation-wide cooling or warming trends. This method is not without its drawbacks. First, there is no way to communicate the exact temperature of each state; the temperature being communicated is relative to the previous year's temperature. Second, this method may create potentially misleading interpretations (which will be discussed later). Despite the limitations of this approach, it remains a viable way to demonstrate how US state temperature has changed over time.
+
+For demonstration purposes, the following code chunk generates a graph to show the change in temperature from 2023 to 2024. For a timelapse version of this graph, use the following Shiny app link: https://mcuadros.shinyapps.io/US_Temperature_Changes/
+
+```{r}
+change_map(2024)
+```
 
 ...
 
