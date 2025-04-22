@@ -130,7 +130,7 @@ season_bar_plot <- function(yr, yr2, season_name){
     geom_col(aes(text = text)) +
     theme(legend.position = "none") +
     facet_wrap(~Month) +
-    ylab("Average Temperature, measured in Celsius")
+    ylab("Anomaly, measured in Celsius")
   
   ggplotly(p, tooltip = "text")
   
