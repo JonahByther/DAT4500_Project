@@ -66,7 +66,6 @@ ui <- fluidPage(
         ), mainPanel(h3(textOutput("titletext1")),
                      h4("The difference between a year's average surface temperature from the 1991-2020 mean, in degrees Celsius."),
            plotlyOutput("mapPlot"),
-           img(src='Laineys_graph_photo.png', width=600, align="center"),
            h4(tags$a(href="https://ourworldindata.org/grapher/annual-temperature-anomalies", 
                      "Our World in Data annual temperature anomalies graph"), "With data retrieved from",
               tags$a(href="https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels-monthly-means?tab=overview", 
