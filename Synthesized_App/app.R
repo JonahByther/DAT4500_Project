@@ -119,7 +119,7 @@ season_bar_plot <- function(yr, yr2, season_name){
                           "Spring" = c("March", "April", "May"),
                           "Summer" = c("June", "July", "August"),
                           "Fall"   = c("September", "October", "November"),
-                          "World"  = c("January","February", "March", "April", "May", "June", 
+                          "All Seasons"  = c("January","February", "March", "April", "May", "June", 
                                        "July", "August", "September", "October", "November", "December"))
   
   p <- temp_anomalies_v2 |>
@@ -271,7 +271,7 @@ ui <- fluidPage(
                                        ticks = FALSE)
                            ,
                            selectInput("season", "Select season:",
-                                       choices = c("Winter", "Spring", "Summer", "Fall", "World"),
+                                       choices = c("Winter", "Spring", "Summer", "Fall", "All Seasons"),
                                        selected = "Winter")),
                          mainPanel(
                            h3(textOutput("TitleText_season"), align = "left"),
