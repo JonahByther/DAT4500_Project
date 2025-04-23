@@ -1,0 +1,10 @@
+name: wa_county_app
+title:
+username: jonahbyther
+account: jonahbyther
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14539556
+bundleId: 10126569
+url: https://jonahbyther.shinyapps.io/wa_county_app/
+version: 1

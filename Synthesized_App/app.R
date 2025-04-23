@@ -170,10 +170,12 @@ county_year <- function(baseline_year, comparison_year, selected_month) {
   comparison_data <- selected_data |>
     left_join(baseline_data, by = "COUNTY") |>
     mutate(temp_diff = TAVG - baseline_TAVG) |>
+    filter(!is.na(temp_diff)) |>
     mutate(temp_category = cut(temp_diff,
                                breaks = c(-Inf, -10, -5, 0, 5, 10, 15, Inf),
                                labels = c("<= -10", "-10 to -5", "-5 to 0", "0 to 5", "5 to 10", "10 to 15", "> 15"),
                                right = FALSE))
+  
   
   WA_county_map_joined <- WA_county_map |> left_join(comparison_data, by = c("county" = "COUNTY"))
   WA_county_map_sf <- st_as_sf(WA_county_map_joined)
@@ -181,18 +183,27 @@ county_year <- function(baseline_year, comparison_year, selected_month) {
   color_palette <- c("<= -10" = "#08306B", "-10 to -5" = "#2171B5", "-5 to 0" = "#DEEBF7",
                      "0 to 5" = "#FEE0D2", "5 to 10" = "#FC9272", "10 to 15" = "#CB181D", "> 15" = "#67000D")
   
-  ggplot(WA_county_map_sf) +
-    geom_sf(aes(fill = temp_category), color = "white", size = 0.1) +
+  WA_county_map_sf <- WA_county_map_sf |> 
+    mutate(hover_text = paste0(
+      "County: ", county, "<br>",
+      "Avg Temp (", comparison_year, "): ", round(TAVG, 2), "°F<br>",
+      "Avg Temp (", baseline_year, "): ", round(baseline_TAVG, 2), "°F<br>",
+      "Temp Change: ", round(temp_diff, 2), "°F"
+    ))
+  
+  p <- ggplot(WA_county_map_sf) +
+    geom_sf(aes(fill = temp_category, text = hover_text), color = "white", size = 0.1) +
     scale_fill_manual(values = color_palette, name = "Temp Diff (°F)") +
-    #labs(
-      #title = if (selected_month == "All Months") {
-       # paste("Change in Avg Temp (Annual)", baseline_year, "vs", comparison_year)
-    #  } else {
-     #   paste("Change in Avg Temp (", selected_month, ")", baseline_year, "vs", comparison_year)
-      #},
-      #fill = "Temp Diff (°F)"
-    #) +
+    # labs(
+    #   title = if (selected_month == "All Months") {
+    #     paste("Change in Avg Temp (Annual)", baseline_year, "vs", comparison_year)
+    #   } else {
+    #     paste("Change in Avg Temp (", selected_month, ")", baseline_year, "vs", comparison_year)
+    #   }
+    # ) +
     theme_minimal()
+  
+  ggplotly(p, tooltip = "hover_text")
 }
 
 # Function to generate the line graph
@@ -275,7 +286,7 @@ ui <- fluidPage(
                          ),
                          mainPanel(
                            h3(textOutput("TitleText_map_county")),
-                           plotOutput("county_mapPlot"),
+                           plotlyOutput("county_mapPlot"),
                            h5("Data retrieved from National Oceanic and Atmospheric Association (NOAA)")
                          )
                        )
@@ -377,7 +388,7 @@ ui <- fluidPage(
 # Server
 server <- function(input, output) {
   
-  output$county_mapPlot <- renderPlot({
+  output$county_mapPlot <- renderPlotly({
     county_year(input$year_range[1], input$year_range[2], input$month)
   })
   
