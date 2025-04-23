@@ -244,7 +244,7 @@ line_graph <- function(selected_county, selected_month) {
     geom_smooth(method = "lm", se = FALSE, color = "firebrick", linetype = "dashed") +
     labs(
       title = paste0(
-        if (!is.na(temp_change)) paste0(" (Change: ", temp_change, "°F)"),
+        if (!is.na(temp_change)) paste0(" (Change per year: ", round(temp_change / 39, 3), "°F)"),
         ""
       ),
     ) +
