@@ -86,34 +86,30 @@ baseline_1985 <- WA_county |>
     filter(year(DATE) == 1985, month(DATE) == 10) |>
     group_by(COUNTY) |>
     summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
-
-baseline_1985
   
-  selected_data <- WA_county |>
+selected_data <- WA_county |>
     filter(year(DATE) == 2024, month(DATE) == 10) |>
     group_by(COUNTY) |>
     summarise(TAVG = mean(TAVG, na.rm = TRUE))
   
-selected_data
-  
-  comparison_data <- selected_data |>
+comparison_data <- selected_data |>
     left_join(baseline_1985, by = "COUNTY") |>
     mutate(temp_diff = TAVG - baseline_TAVG)
   
-  comparison_data <- comparison_data |>
-    mutate(
-      temp_category = cut(
-        temp_diff,
-        breaks = c(-Inf, -10, -5, 0, 5, 10, 15, Inf),
-        labels = c("<= -10", "-10 to -5", "-5 to 0", "0 to 5", "5 to 10", "10 to 15", "> 15"),
-        right = FALSE
-      )
+comparison_data <- comparison_data |>
+  mutate(
+    temp_category = cut(
+      temp_diff,
+      breaks = c(-Inf, -10, -5, 0, 5, 10, 15, Inf),
+      labels = c("<= -10", "-10 to -5", "-5 to 0", "0 to 5", "5 to 10", "10 to 15", "> 15"),
+      right = FALSE
     )
+  )
   
-  WA_county_map_joined <- WA_county_map |>
+WA_county_map_joined <- WA_county_map |>
     left_join(comparison_data, by = c("county" = "COUNTY"))
   
-  WA_county_map_sf <- st_as_sf(WA_county_map_joined)
+WA_county_map_sf <- st_as_sf(WA_county_map_joined)
   
   color_palette <- c(
     "<= -10" = "#08306B",  
@@ -136,6 +132,11 @@ selected_data
       fill = "Temp Diff (°F)"
     ) +
     theme_minimal()
+  
+WA_county |>
+  
+model <- lm()
+
 
 
 ```

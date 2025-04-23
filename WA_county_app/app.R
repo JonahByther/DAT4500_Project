@@ -77,7 +77,6 @@ county_year <- function(baseline_year, comparison_year, selected_month) {
   ggplotly(p, tooltip = "hover_text")
 }
 
-# Function to generate the line graph
 line_graph <- function(selected_county, selected_month) {
   month_num <- match(selected_month, month.name)
   
@@ -92,21 +91,41 @@ line_graph <- function(selected_county, selected_month) {
   
   data <- data |>
     group_by(Year) |>
-    summarise(TAVG = mean(TAVG, na.rm = TRUE)) |> 
+    summarise(TAVG = mean(TAVG, na.rm = TRUE)) |>
+    arrange(Year)
+  
+  model <- lm(TAVG ~ Year, data = data)
+  
+  pred_1985 <- predict(model, newdata = data.frame(Year = 1985))
+  pred_2024 <- predict(model, newdata = data.frame(Year = 2024))
+  
+  # Calculate the difference
+  temp_change <- round(pred_2024 - pred_1985, 3)
+  
+  # Add hover text
+  data <- data |>
     mutate(hover_text = paste("Year: ", Year, "<br>", "Avg Temp: ", round(TAVG, 2), "°F"))
   
+  # Plot
   p <- ggplot(data, aes(x = Year, y = TAVG)) +
     geom_line(color = "steelblue", size = 1.2) +
-    geom_point(aes(text = hover_text), color = "darkblue") +  # Add hover text here
+    geom_point(aes(text = hover_text), color = "darkblue") +
+    geom_smooth(method = "lm", se = FALSE, color = "firebrick", linetype = "dashed") +
     labs(
-      title = paste("Avg Temp Over Time in", selected_county),
+      title = paste0(
+        "Avg Temp Over Time in ", selected_county,
+        if (!is.na(temp_change)) paste0(" (Change: ", temp_change, "°F)"),
+        ""
+      ),
       y = "Average Temp (°F)",
       x = "Year"
     ) +
     theme_minimal()
   
-  ggplotly(p, tooltip = "text")  # Use 'text' for the tooltip
+  ggplotly(p, tooltip = "text")
 }
+
+
 
 
 
