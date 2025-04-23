@@ -221,17 +221,20 @@ line_graph <- function(selected_county, selected_month) {
   
   data <- data |>
     group_by(Year) |>
-    summarise(TAVG = mean(TAVG, na.rm = TRUE))
+    summarise(TAVG = mean(TAVG, na.rm = TRUE)) |> 
+    mutate(hover_text = paste("Year: ", Year, "<br>", "Avg Temp: ", round(TAVG, 2), "°F"))
   
-  ggplot(data, aes(x = Year, y = TAVG)) +
+  p <- ggplot(data, aes(x = Year, y = TAVG)) +
     geom_line(color = "steelblue", size = 1.2) +
-    geom_point(color = "darkblue") +
-  #  labs(
-   #   title = paste("Avg Temp Over Time in", selected_county),
-    #  y = "Average Temp (°F)",
-     # x = "Year"
-    #) +
+    geom_point(aes(text = hover_text), color = "darkblue") +  # Add hover text here
+    labs(
+      title = paste("Avg Temp Over Time in", selected_county),
+      y = "Average Temp (°F)",
+      x = "Year"
+    ) +
     theme_minimal()
+  
+  ggplotly(p, tooltip = "text")  # Use 'text' for the tooltip
 }
 
 ### WA County Code - END
@@ -302,7 +305,7 @@ ui <- fluidPage(
                          ),
                          mainPanel(
                            h3(textOutput("TitleText_line_county"), align = "middle"),
-                           plotOutput("county_linePlot"),
+                           plotlyOutput("county_linePlot"),
                            h5("Data retrieved from National Oceanic and Atmospheric Association (NOAA)")
                          )
                        )
@@ -392,7 +395,7 @@ server <- function(input, output) {
     county_year(input$year_range[1], input$year_range[2], input$month)
   })
   
-  output$county_linePlot <- renderPlot({
+  output$county_linePlot <- renderPlotly({
     line_graph(input$line_county, input$line_month)
   })
   

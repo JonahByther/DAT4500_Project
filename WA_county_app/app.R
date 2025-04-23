@@ -92,18 +92,22 @@ line_graph <- function(selected_county, selected_month) {
   
   data <- data |>
     group_by(Year) |>
-    summarise(TAVG = mean(TAVG, na.rm = TRUE))
+    summarise(TAVG = mean(TAVG, na.rm = TRUE)) |> 
+    mutate(hover_text = paste("Year: ", Year, "<br>", "Avg Temp: ", round(TAVG, 2), "°F"))
   
-  ggplot(data, aes(x = Year, y = TAVG)) +
+  p <- ggplot(data, aes(x = Year, y = TAVG)) +
     geom_line(color = "steelblue", size = 1.2) +
-    geom_point(color = "darkblue") +
+    geom_point(aes(text = hover_text), color = "darkblue") +  # Add hover text here
     labs(
       title = paste("Avg Temp Over Time in", selected_county),
       y = "Average Temp (°F)",
       x = "Year"
     ) +
     theme_minimal()
+  
+  ggplotly(p, tooltip = "text")  # Use 'text' for the tooltip
 }
+
 
 
 # UI
@@ -133,7 +137,7 @@ ui <- fluidPage(
                                        choices = c("All Months", month.name), selected = "All Months")
                          ),
                          mainPanel(
-                           plotOutput("linePlot")
+                           plotlyOutput("linePlot")
                          )
                        )
               )
@@ -146,7 +150,7 @@ server <- function(input, output) {
     county_year(input$year_range[1], input$year_range[2], input$month)
   })
   
-  output$linePlot <- renderPlot({
+  output$linePlot <- renderPlotly({
     line_graph(input$line_county, input$line_month)
   })
 }
