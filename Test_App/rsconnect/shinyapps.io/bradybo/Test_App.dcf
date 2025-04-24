@@ -1,0 +1,13 @@
+name: Test_App
+title: Test_App
+username: bradybo
+account: bradybo
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14607176
+bundleId: 10172703
+url: https://bradybo.shinyapps.io/Test_App/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: annual-temperature-anomalies.csv|avg_state_temps.csv|WA_county.csv

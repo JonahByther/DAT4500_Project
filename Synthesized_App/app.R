@@ -280,7 +280,6 @@ function1 <-function(TempYears) {
   
   plotlyWTA_24 <- WorldTempAnom_24 |>
     mutate(text = paste("<b>",Entity,"</b>\n",Year,"</b>\n",temperature_anomaly,"</b>°C")) |>
-    
     ggplot() +
     geom_sf(aes(fill=temperature_anomaly, text=text), color="black") +
     scale_fill_continuous("", low="blue", high="red") +

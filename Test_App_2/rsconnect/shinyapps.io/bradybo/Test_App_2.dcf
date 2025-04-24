@@ -1,0 +1,12 @@
+name: Test_App_2
+title: Test_App_2
+username: bradybo
+account: bradybo
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14607727
+bundleId: 10173019
+url: https://bradybo.shinyapps.io/Test_App_2/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
