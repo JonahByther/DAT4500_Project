@@ -260,36 +260,9 @@ line_graph <- function(selected_county, selected_month) {
 
 AnnTempAnomolies <- read.csv("annual-temperature-anomalies.csv")
 
-world <- ne_countries(scale = "medium", returnclass = "sf") |>
-  filter(sovereignt != "Antarctica")
 
-function1 <-function(TempYears) {
-  
-  TempAnomalies_24 <- AnnTempAnomolies |>
-    filter(Year == TempYears)
-  
-  WorldTempAnom_24 <- world |>
-    left_join(TempAnomalies_24, by = c("iso_a3_eh" = "Code"))
-  
-  my_map_theme <- function(){
-    theme(panel.background=element_blank(),
-          axis.text=element_blank(),
-          axis.ticks=element_blank(),
-          axis.title=element_blank())
-  }
-  
-  plotlyWTA_24 <- WorldTempAnom_24 |>
-    mutate(text = paste("<b>",Entity,"</b>\n",Year,"</b>\n",temperature_anomaly,"</b>°C")) |>
-    ggplot() +
-    geom_sf(aes(fill=temperature_anomaly, text=text), color="black") +
-    scale_fill_continuous("", low="blue", high="red") +
-    #labs(title = "Annual temperature anomalies, 2024.\nThe difference between a year's average surface temperature from the\n1991-2020 mean, in degrees Celcius.") +
-    theme(legend.position = "none") + #c(0.9, 0)) +
-    my_map_theme() 
-  
-  ggplotly(plotlyWTA_24, tooltip = "text") |>
-    style(hoveron = "fill") 
-}
+
+
 
 # UI
 ui <- fluidPage(
