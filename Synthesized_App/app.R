@@ -244,7 +244,7 @@ line_graph <- function(selected_county, selected_month) {
     geom_smooth(method = "lm", se = FALSE, color = "firebrick", linetype = "dashed") +
     labs(
       title = paste0(
-        if (!is.na(temp_change)) paste0(" (Change per year: ", round(temp_change / 39, 3), "°F)"),
+        if (!is.na(temp_change)) paste0(" (Change per year: ", round(temp_change / 49, 3), "°F)"),
         ""
       ),
     ) +
@@ -305,7 +305,7 @@ ui <- fluidPage(
                        sidebarLayout(
                          sidebarPanel(
                            sliderInput("year_range", "Select a year range:",
-                                       min = 1985, max = 2024, value = c(1985, 2000), step = 1, sep = ""),
+                                       min = 1975, max = 2024, value = c(1985, 2000), step = 1, sep = ""),
                            selectInput("month", "Select a month:", choices = c("All Months", month.name), selected = "January")
                          ),
                          mainPanel(
