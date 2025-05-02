@@ -1,0 +1,12 @@
+name: Synthesized_App_Testing
+title: Synthesized_App_Testing
+username: mcuadros
+account: mcuadros
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14610775
+bundleId: 10174255
+url: https://mcuadros.shinyapps.io/Synthesized_App_Testing/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

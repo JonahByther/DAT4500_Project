@@ -7,17 +7,29 @@
 #    https://shiny.posit.co/
 #
 
-if(!require(shiny)) install.packages('shiny')
-if(!require(tidyverse)) install.packages('tidyverse')
-if(!require(openintro)) install.packages('openintro')
-if(!require(plotly)) install.packages('plotly')
-if(!require(usmap)) install.packages('usmap')
-if(!require(dplyr)) install.packages('dplyr')
-if(!require(lubridate)) install.packages('lubridate')
-if(!require(sf)) install.packages('sf')
-if(!require(scales)) install.packages('scales')
-if(!require(rnaturalearth)) install.packages("rnaturalearth")
-if(!require(rnaturalearth)) install.packages("rnaturalearthdata")
+#if(!require(shiny)) install.packages('shiny')
+#if(!require(tidyverse)) install.packages('tidyverse')
+#if(!require(openintro)) install.packages('openintro')
+#if(!require(plotly)) install.packages('plotly')
+#if(!require(usmap)) install.packages('usmap')
+#if(!require(dplyr)) install.packages('dplyr')
+#if(!require(lubridate)) install.packages('lubridate')
+#if(!require(sf)) install.packages('sf')
+#if(!require(scales)) install.packages('scales')
+#if(!require(rnaturalearth)) install.packages("rnaturalearth")
+#if(!require(rnaturalearth)) install.packages("rnaturalearthdata")
+
+library(shiny)
+library(tidyverse)
+library(openintro)
+library(plotly)
+library(usmap)
+library(dplyr)
+library(lubridate)
+library(sf)
+library(scales)
+library(rnaturalearth)
+library(rnaturalearthdata)
 
 
 ###US Map Code - START
@@ -122,7 +134,7 @@ season_bar_plot <- function(yr, yr2, season_name){
                           "Summer" = c("June", "July", "August"),
                           "Fall"   = c("September", "October", "November"),
                           "All Seasons"  = c("January","February", "March", "April", "May", "June", 
-                                       "July", "August", "September", "October", "November", "December"))
+                                             "July", "August", "September", "October", "November", "December"))
   
   p <- temp_anomalies_v2 |>
     mutate(text = paste("Year:", Year, "</b>",
@@ -402,10 +414,10 @@ ui <- fluidPage(
   )
 )
 
-  
-              
 
-      
+
+
+
 
 
 
@@ -439,7 +451,7 @@ server <- function(input, output) {
   )
   
   output$TitleText_season <- renderText(
-   paste(input$season, "Temperature Anomalies")
+    paste(input$season, "Temperature Anomalies")
   )
   
   output$TitleText_line_county <- renderText(
@@ -452,7 +464,7 @@ server <- function(input, output) {
   
   output$TitleText_annual_anomalies <- renderText(
     paste("Annual temperature anomalies,", input$TempYears))
-
+  
 }
 
 # Run the application 
