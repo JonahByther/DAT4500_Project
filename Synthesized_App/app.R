@@ -7,17 +7,18 @@
 #    https://shiny.posit.co/
 #
 
-if(!require(shiny)) install.packages('shiny')
-if(!require(tidyverse)) install.packages('tidyverse')
-if(!require(openintro)) install.packages('openintro')
-if(!require(plotly)) install.packages('plotly')
-if(!require(usmap)) install.packages('usmap')
-if(!require(dplyr)) install.packages('dplyr')
-if(!require(lubridate)) install.packages('lubridate')
-if(!require(sf)) install.packages('sf')
-if(!require(scales)) install.packages('scales')
-if(!require(rnaturalearth)) install.packages("rnaturalearth")
-if(!require(rnaturalearth)) install.packages("rnaturalearthdata")
+library(shiny)
+library(tidyverse)
+library(openintro)
+library(plotly)
+library(usmap)
+library(dplyr)
+library(lubridate)
+library(sf)
+library(scales)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
 
 
 ###US Map Code - START
