@@ -7,6 +7,18 @@
 #    https://shiny.posit.co/
 #
 
+#if(!require(shiny)) install.packages('shiny')
+#if(!require(tidyverse)) install.packages('tidyverse')
+#if(!require(openintro)) install.packages('openintro')
+#if(!require(plotly)) install.packages('plotly')
+#if(!require(usmap)) install.packages('usmap')
+#if(!require(dplyr)) install.packages('dplyr')
+#if(!require(lubridate)) install.packages('lubridate')
+#if(!require(sf)) install.packages('sf')
+#if(!require(scales)) install.packages('scales')
+#if(!require(rnaturalearth)) install.packages("rnaturalearth")
+#if(!require(rnaturalearth)) install.packages("rnaturalearthdata")
+
 library(shiny)
 library(tidyverse)
 library(openintro)
@@ -18,7 +30,6 @@ library(sf)
 library(scales)
 library(rnaturalearth)
 library(rnaturalearthdata)
-
 
 
 ###US Map Code - START
@@ -123,7 +134,7 @@ season_bar_plot <- function(yr, yr2, season_name){
                           "Summer" = c("June", "July", "August"),
                           "Fall"   = c("September", "October", "November"),
                           "All Seasons"  = c("January","February", "March", "April", "May", "June", 
-                                       "July", "August", "September", "October", "November", "December"))
+                                             "July", "August", "September", "October", "November", "December"))
   
   p <- temp_anomalies_v2 |>
     mutate(text = paste("Year:", Year, "</b>",
@@ -213,7 +224,7 @@ line_graph <- function(selected_county, selected_month) {
   month_num <- match(selected_month, month.name)
   
   data <- WA_county |>
-    filter(COUNTY == selected_county & year(DATE) != 2025) |>
+    filter(COUNTY == selected_county) |>
     mutate(Year = year(DATE))
   
   # If a specific month is selected, filter by month
@@ -227,13 +238,12 @@ line_graph <- function(selected_county, selected_month) {
     arrange(Year)
   
   model <- lm(TAVG ~ Year, data = data)
-  p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
   
-  pred_1975 <- predict(model, newdata = data.frame(Year = 1975))
+  pred_1985 <- predict(model, newdata = data.frame(Year = 1985))
   pred_2024 <- predict(model, newdata = data.frame(Year = 2024))
   
   # Calculate the difference
-  temp_change <- round(pred_2024 - pred_1975, 3)
+  temp_change <- round(pred_2024 - pred_1985, 3)
   
   # Add hover text
   data <- data |>
@@ -246,7 +256,7 @@ line_graph <- function(selected_county, selected_month) {
     geom_smooth(method = "lm", se = FALSE, color = "firebrick", linetype = "dashed") +
     labs(
       title = paste0(
-        if (!is.na(temp_change)) paste0(" (Change per year: ", p_value, "°F)"),
+        if (!is.na(temp_change)) paste0(" (Change per year: ", round(temp_change / 39, 3), "°F)"),
         ""
       ),
     ) +
@@ -307,7 +317,7 @@ ui <- fluidPage(
                        sidebarLayout(
                          sidebarPanel(
                            sliderInput("year_range", "Select a year range:",
-                                       min = 1975, max = 2024, value = c(1985, 2000), step = 1, sep = ""),
+                                       min = 1985, max = 2024, value = c(1985, 2000), step = 1, sep = ""),
                            selectInput("month", "Select a month:", choices = c("All Months", month.name), selected = "January")
                          ),
                          mainPanel(
@@ -404,10 +414,10 @@ ui <- fluidPage(
   )
 )
 
-  
-              
 
-      
+
+
+
 
 
 
@@ -441,7 +451,7 @@ server <- function(input, output) {
   )
   
   output$TitleText_season <- renderText(
-   paste(input$season, "Temperature Anomalies")
+    paste(input$season, "Temperature Anomalies")
   )
   
   output$TitleText_line_county <- renderText(
@@ -454,7 +464,7 @@ server <- function(input, output) {
   
   output$TitleText_annual_anomalies <- renderText(
     paste("Annual temperature anomalies,", input$TempYears))
-
+  
 }
 
 # Run the application 
