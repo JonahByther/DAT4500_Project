@@ -14,6 +14,8 @@ library(dplyr)
 library(lubridate)
 library(sf)
 library(plotly)
+library(tidyr)
+library(broom)
 
 temp_anomalies <- read.csv("country-level-monthly-temperature-anomalies.csv")
 WA_county <- read.csv("WA_county.csv")
@@ -132,13 +134,116 @@ WA_county_map_sf <- st_as_sf(WA_county_map_joined)
       fill = "Temp Diff (°F)"
     ) +
     theme_minimal()
+
+library(dplyr)
+library(tidyr)
+
+regression_p_value_table <- function() {
+  # Create an empty data frame to store results
+  result <- tibble(
+    Month = character(),
+    Significant_Counties = integer(),
+    Positive_Slope_Counties = integer(),
+    Negative_Slope_Counties = integer()
+  )
+
+  # Loop through each month
+  for (selected_month in c("All Months", month.name)) {
+    sig_counties <- 0
+    pos_slope_counties <- 0
+    neg_slope_counties <- 0
+
+    for (selected_county in unique(WA_county$COUNTY)) {
+      month_num <- match(selected_month, month.name)
+      
+      data <- WA_county |>
+        filter(COUNTY == selected_county & year(DATE) != 2025) |>
+        mutate(Year = year(DATE))
+
+      if (selected_month != "All Months") {
+        data <- data |> filter(month(DATE) == month_num)
+      }
+
+      if (nrow(data) > 1 && sum(!is.na(data$TAVG)) > 1) {
+        model <- lm(TAVG ~ Year, data = data)
+
+        if ("Year" %in% rownames(summary(model)$coefficients)) {
+          p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
+          slope <- coef(model)["Year"]
+
+          # Count significant p-values
+          if (!is.na(p_value) && p_value < 0.05) {
+            sig_counties <- sig_counties + 1
+          }
+          # Count positive or negative slopes
+          if (!is.na(slope)) {
+            if (slope > 0) {
+              pos_slope_counties <- pos_slope_counties + 1
+            } else if (slope < 0) {
+              neg_slope_counties <- neg_slope_counties + 1
+            }
+          }
+        }
+      }
+    }
+
+    # Add the result for the current month
+    result <- result |> add_row(
+      Month = selected_month,
+      Significant_Counties = sig_counties,
+      Positive_Slope_Counties = pos_slope_counties,
+      Negative_Slope_Counties = neg_slope_counties
+    )
+  }
+
+  return(result)
+}
+
+# Example usage
+significance_table <- regression_p_value_table()
+significance_table
+
+
+regression_significance_per_county <- function() {
+  result <- tibble(County = character(), Significant_Months = integer())
   
-WA_county |>
+  for (selected_county in unique(WA_county$COUNTY)) {
+    sig_months <- 0
+    
+    for (selected_month in c("All Months", month.name)) {
+      
+      month_num <- match(selected_month, month.name)
+      data <- WA_county |>
+        filter(COUNTY == selected_county & year(DATE) != 2025) |>
+        mutate(Year = year(DATE))
+      
+      if (selected_month != "All Months") {
+        data <- data |> filter(month(DATE) == month_num)
+      }
+      
+      if (nrow(data) > 1 && sum(!is.na(data$TAVG)) > 1) {
+        model <- lm(TAVG ~ Year, data = data)
+        
+        if ("Year" %in% rownames(summary(model)$coefficients)) {
+          p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
+          
+          if (p_value < 0.05) {
+            sig_months <- sig_months + 1
+          }
+        }
+      }
+    }
+    
+    result <- result |> add_row(County = selected_county, Significant_Months = sig_months)
+  }
   
-model <- lm()
+  return(result)
+}
 
-
-
+# Example usage
+significance_per_county_table <- regression_significance_per_county()
+View(significance_per_county_table)
+View(significance_table)
 ```
 
 ### United States Average Temperature Exploration
