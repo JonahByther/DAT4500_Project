@@ -212,7 +212,7 @@ line_graph <- function(selected_county, selected_month) {
   month_num <- match(selected_month, month.name)
   
   data <- WA_county |>
-    filter(COUNTY == selected_county) |>
+    filter(COUNTY == selected_county & year(DATE) != 2025) |>
     mutate(Year = year(DATE))
   
   # If a specific month is selected, filter by month
@@ -226,12 +226,13 @@ line_graph <- function(selected_county, selected_month) {
     arrange(Year)
   
   model <- lm(TAVG ~ Year, data = data)
+  p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
   
-  pred_1985 <- predict(model, newdata = data.frame(Year = 1985))
+  pred_1975 <- predict(model, newdata = data.frame(Year = 1975))
   pred_2024 <- predict(model, newdata = data.frame(Year = 2024))
   
   # Calculate the difference
-  temp_change <- round(pred_2024 - pred_1985, 3)
+  temp_change <- round(pred_2024 - pred_1975, 3)
   
   # Add hover text
   data <- data |>
@@ -244,7 +245,7 @@ line_graph <- function(selected_county, selected_month) {
     geom_smooth(method = "lm", se = FALSE, color = "firebrick", linetype = "dashed") +
     labs(
       title = paste0(
-        if (!is.na(temp_change)) paste0(" (Change per year: ", round(temp_change / 49, 3), "°F)"),
+        if (!is.na(temp_change)) paste0(" (Change per year: ", p_value, "°F)"),
         ""
       ),
     ) +
