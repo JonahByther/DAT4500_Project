@@ -135,23 +135,21 @@ WA_county_map_sf <- st_as_sf(WA_county_map_joined)
     ) +
     theme_minimal()
 
-library(dplyr)
-library(tidyr)
 
 regression_p_value_table <- function() {
-  # Create an empty data frame to store results
   result <- tibble(
     Month = character(),
     Significant_Counties = integer(),
     Positive_Slope_Counties = integer(),
-    Negative_Slope_Counties = integer()
+    Negative_Slope_Counties = integer(),
+    Not_Significant = integer()
   )
 
-  # Loop through each month
   for (selected_month in c("All Months", month.name)) {
     sig_counties <- 0
     pos_slope_counties <- 0
     neg_slope_counties <- 0
+    not_sig <- 0
 
     for (selected_county in unique(WA_county$COUNTY)) {
       month_num <- match(selected_month, month.name)
@@ -171,48 +169,50 @@ regression_p_value_table <- function() {
           p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
           slope <- coef(model)["Year"]
 
-          # Count significant p-values
           if (!is.na(p_value) && p_value < 0.05) {
             sig_counties <- sig_counties + 1
+            if (slope > 0) pos_slope_counties <- pos_slope_counties + 1
+            else if (slope < 0) neg_slope_counties <- neg_slope_counties + 1
           }
-          # Count positive or negative slopes
-          if (!is.na(slope)) {
-            if (slope > 0) {
-              pos_slope_counties <- pos_slope_counties + 1
-            } else if (slope < 0) {
-              neg_slope_counties <- neg_slope_counties + 1
-            }
-          }
+          else not_sig <- not_sig + 1
         }
       }
     }
 
-    # Add the result for the current month
     result <- result |> add_row(
       Month = selected_month,
       Significant_Counties = sig_counties,
       Positive_Slope_Counties = pos_slope_counties,
-      Negative_Slope_Counties = neg_slope_counties
+      Negative_Slope_Counties = neg_slope_counties,
+      Not_Significant = not_sig
     )
   }
 
   return(result)
 }
 
-# Example usage
 significance_table <- regression_p_value_table()
 significance_table
 
 
 regression_significance_per_county <- function() {
-  result <- tibble(County = character(), Significant_Months = integer())
+  result <- tibble(
+    County = character(),
+    Significant_Months = integer(),
+    Positive_Trends = integer(),
+    Negative_Trends = integer(),
+    Not_significant = integer(),
+  )
   
   for (selected_county in unique(WA_county$COUNTY)) {
     sig_months <- 0
+    pos_trends <- 0
+    neg_trends <- 0
+    not_sig <- 0
     
     for (selected_month in c("All Months", month.name)) {
-      
       month_num <- match(selected_month, month.name)
+      
       data <- WA_county |>
         filter(COUNTY == selected_county & year(DATE) != 2025) |>
         mutate(Year = year(DATE))
@@ -223,27 +223,110 @@ regression_significance_per_county <- function() {
       
       if (nrow(data) > 1 && sum(!is.na(data$TAVG)) > 1) {
         model <- lm(TAVG ~ Year, data = data)
+        model_summary <- summary(model)
         
-        if ("Year" %in% rownames(summary(model)$coefficients)) {
-          p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
+        if ("Year" %in% rownames(model_summary$coefficients)) {
+          p_value <- model_summary$coefficients["Year", "Pr(>|t|)"]
+          slope <- coef(model)["Year"]
           
-          if (p_value < 0.05) {
+          if (!is.na(p_value) && p_value < 0.05) {
             sig_months <- sig_months + 1
+            if (slope > 0) pos_trends <- pos_trends + 1
+            else if (slope < 0) neg_trends <- neg_trends + 1
+            else not_sig <- not_sig + 1
           }
         }
       }
     }
-    
-    result <- result |> add_row(County = selected_county, Significant_Months = sig_months)
+
+    result <- result |> add_row(
+      County = selected_county,
+      Significant_Months = sig_months,
+      Positive_Trends = pos_trends,
+      Negative_Trends = neg_trends,
+      Not_Significant = not_sig
+    )
   }
   
   return(result)
 }
 
-# Example usage
 significance_per_county_table <- regression_significance_per_county()
-View(significance_per_county_table)
-View(significance_table)
+significance_per_county_table
+
+
+significance_table$Month <- factor(significance_table$Month, levels = month.name)
+
+long_data <- significance_table |>
+  pivot_longer(
+    cols = c(Negative_Slope_Counties, Not_Significant, Positive_Slope_Counties),
+    names_to = "Category",
+    values_to = "Count"
+  )
+
+long_data$Category <- factor(long_data$Category, levels = c("Positive_Slope_Counties",
+                                                            "Not_Significant",
+                                                            "Negative_Slope_Counties"))
+
+month_order <- c("January", "February", "March", "April", "May", "June",
+                 "July", "August", "September", "October", "November", "December")
+
+long_data$Month <- factor(long_data$Month, levels = month_order)
+
+ggplot(long_data, aes(x = Month, y = Count, fill = Category)) +
+  geom_col() +
+  scale_fill_manual(
+    values = c(
+      "Positive_Slope_Counties" = "#FF0000",
+      "Not_Significant" = "#808080",
+      "Negative_Slope_Counties" = "#0000FF"
+    )
+  )+
+  labs(
+    title = "Monthly Regression Summary Across Counties",
+    x = "Month",
+    y = "Number of Counties",
+    fill = "Category"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+ggplot(significance_table, aes(x = Month, y = Significant_Counties)) +
+  geom_col() +
+  labs(
+    title = "Monthly Regression Summary Across Counties",
+    x = "Month",
+    y = "Number of Counties",
+    fill = "Category"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+significance_per_county_table
+
+
+WA_county_significance <- WA_county_map |>
+    left_join(significance_per_county_table, by = c("county" = "County")) |>
+    mutate(Slope_Diff = Positive_Trends - Negative_Trends)
+
+WA_county_significance
+
+ggplot(WA_county_significance) +
+  geom_sf(aes(fill = Slope_Diff), color = "white") +
+  scale_fill_gradient2(
+    low = "blue", mid = "gray90", high = "red",
+    midpoint = 0, limits = c(-10, 13), name = "Slope Balance"
+  ) +
+  labs(
+    title = "County Temperature Trend Balance (Positive vs Negative Slopes)",
+    caption = "Red: More Positive Slopes, Blue: More Negative Slopes"
+  ) +
+  theme_minimal()
+
 ```
 
 ### United States Average Temperature Exploration
