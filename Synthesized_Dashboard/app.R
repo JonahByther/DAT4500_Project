@@ -149,13 +149,143 @@ AGGI_emit <- WA_emit |>
   filter(Year >= 1979) |> 
   left_join(AGGI, by = c("Year" = "Year"))
 
+  # Regression Data Summaries
+
+emitSig <- lm(Emissions ~ Year, data = WA_emit)
+
+capitaSig <- lm(Per_Capita ~ Year, data = WA_emit)
+
+tempSig <-lm(Temp ~ Year, data = WA_emit)
+
+### WA State Regression END
+
+### WA Counties Analysis START
+
+WA_county <- read.csv("WA_county.csv")
+
+us_county <- us_map(region = "counties")
+WA_county_map <- us_county |>
+  filter(full == "Washington")
+
+# Function to create the county map
+county_year <- function(baseline_year, comparison_year, selected_month) {
+  month_num <- match(selected_month, month.name)
+  
+  if (selected_month == "All Months") {
+    baseline_data <- WA_county |>
+      filter(year(DATE) == baseline_year) |> group_by(COUNTY) |> summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
+    
+    selected_data <- WA_county |>
+      filter(year(DATE) == comparison_year) |> group_by(COUNTY) |> summarise(TAVG = mean(TAVG, na.rm = TRUE))
+    
+  } else {
+    baseline_data <- WA_county |>
+      filter(year(DATE) == baseline_year, month(DATE) == month_num) |>
+      group_by(COUNTY) |> summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
+    
+    selected_data <- WA_county |> filter(year(DATE) == comparison_year, month(DATE) == month_num) |> group_by(COUNTY) |> summarise(TAVG = mean(TAVG, na.rm = TRUE))
+  }
+  
+  comparison_data <- selected_data |>
+    left_join(baseline_data, by = "COUNTY") |>
+    mutate(temp_diff = TAVG - baseline_TAVG) |>
+    filter(!is.na(temp_diff)) |>
+    mutate(temp_category = cut(temp_diff,
+                               breaks = c(-Inf, -10, -5, 0, 5, 10, 15, Inf),
+                               labels = c("<= -10", "-10 to -5", "-5 to 0", "0 to 5", "5 to 10", "10 to 15", "> 15"),
+                               right = FALSE))
+  
+  
+  WA_county_map_joined <- WA_county_map |> left_join(comparison_data, by = c("county" = "COUNTY"))
+  WA_county_map_sf <- st_as_sf(WA_county_map_joined)
+  
+  color_palette <- c("<= -10" = "#08306B", "-10 to -5" = "#2171B5", "-5 to 0" = "#DEEBF7",
+                     "0 to 5" = "#FEE0D2", "5 to 10" = "#FC9272", "10 to 15" = "#CB181D", "> 15" = "#67000D")
+  
+  WA_county_map_sf <- WA_county_map_sf |> 
+    mutate(hover_text = paste0(
+      "County: ", county, "<br>",
+      "Avg Temp (", comparison_year, "): ", round(TAVG, 2), "°F<br>",
+      "Avg Temp (", baseline_year, "): ", round(baseline_TAVG, 2), "°F<br>",
+      "Temp Change: ", round(temp_diff, 2), "°F"
+    ))
+  
+  p <- ggplot(WA_county_map_sf) +
+    geom_sf(aes(fill = temp_category, text = hover_text), color = "white", size = 0.1) +
+    scale_fill_manual(values = color_palette, name = "Temp Diff (°F)") +
+    labs(
+    title = if (selected_month == "All Months") {
+    paste("Change in Avg Temp (Annual)", baseline_year, "vs", comparison_year)
+       } else {
+         paste("Change in Avg Temp (", selected_month, ")", baseline_year, "vs", comparison_year)
+       }
+     ) +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggplotly(p, tooltip = "hover_text")
+}
+
+# Function to generate the line graph
+line_graph <- function(selected_county, selected_month) {
+  month_num <- match(selected_month, month.name)
+  
+  data <- WA_county |>
+    filter(COUNTY == selected_county & year(DATE) != 2025) |>
+    mutate(Year = year(DATE))
+  
+  # If a specific month is selected, filter by month
+  if (selected_month != "All Months") {
+    data <- data |> filter(month(DATE) == month_num)
+  }
+  
+  data <- data |>
+    group_by(Year) |>
+    summarise(TAVG = mean(TAVG, na.rm = TRUE)) |>
+    arrange(Year)
+  
+  model <- lm(TAVG ~ Year, data = data)
+  p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
+  
+  pred_1975 <- predict(model, newdata = data.frame(Year = 1975))
+  pred_2024 <- predict(model, newdata = data.frame(Year = 2024))
+  
+  # Calculate the difference
+  temp_change <- round(pred_2024 - pred_1975, 3)
+  
+  # Add hover text
+  data <- data |>
+    mutate(hover_text = paste("Year: ", Year, "<br>", "Avg Temp: ", round(TAVG, 2), "°F"))
+  
+  # Plot
+  p <- ggplot(data, aes(x = Year, y = TAVG)) +
+    geom_line(color = "steelblue", size = 1.2) +
+    geom_point(aes(text = hover_text), color = "darkblue") +
+    geom_smooth(method = "lm", se = FALSE, color = "firebrick", linetype = "dashed") +
+    labs(
+      title = paste0(
+        if (!is.na(temp_change)) paste0(" (Change per year: ", p_value, "°F)"),
+        ""
+      ),
+    ) +
+    theme_minimal()+
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  ggplotly(p, tooltip = "text")
+}
+### WA Counties Analysis END
+
+
+
 # Define UI for application that draws a histogram
 ui <- dashboardPage(skin = "blue",
   dashboardHeader(title = "Climate Change Dashboard"), 
 sidebar <- dashboardSidebar(
     sidebarMenu(
-      menuItem("Anomalies", tabName = "anomalies_tab", icon = icon("dashboard")),
-      menuItem("Washington County", tabName = "wa_tab", icon = icon("dashboard")))
+      menuItem("Global Anomalies", tabName = "anomalies_tab", icon = icon("globe")),
+      menuItem("Washington State Regression", tabName = "wa_state_tab", icon = icon("line-chart")),
+      menuItem("Regression Results", tabName = "regression_summary_tab", icon = icon("table")),
+      menuItem("Washington Counties Analysis", tabName = "wa_counties_tab", icon = icon("map")))
   ),
   dashboardBody(
     tabItems(
@@ -182,17 +312,16 @@ sidebar <- dashboardSidebar(
           plotlyOutput("anomalies_mapPlot"))
     )
     ),
-    tabItem(tabName = "wa_tab",
+    tabItem(tabName = "wa_state_tab",
             fluidRow(
               box(
-                title = "Washington State's Annual Energy-Related Carbon Emissions", solidHeader = TRUE,
-                collapsible = TRUE, width = 6, background = "olive",
-                plotOutput("wa_emit_total")
-              ),
-              box(
-                title = "Washington State's Annual Energy-Related CO2 Emissions Per Capita", solidHeader = TRUE,
-                collapsible = TRUE, width = 6, background = "olive",
-                plotOutput("wa_emit_percapita")
+                title = "Washington CO2 Emissions Analysis",
+                solidHeader = TRUE, collapsible = TRUE, background = "olive", width = 12,
+              tabBox(
+                id = "tabset1", width = 12,
+                tabPanel("Annual Total Energy-Related Carbon Emissions", plotOutput("wa_emit_total")),
+                tabPanel("Energy-Related CO2 Emissions Per Capita", plotOutput("wa_emit_percapita"))
+              )
               ),
               box(
                 title = "Washington State's Annual Average temperature", solidHeader = TRUE,
@@ -201,13 +330,44 @@ sidebar <- dashboardSidebar(
               ),
               box(
                 title = "Cumulative Parts Per Million (PPM)", solidHeader = TRUE,
-                collapsible = TRUE, width = 6, background = "olive",
+                collapsible = TRUE, width = 6, side = "right", background = "olive",
                 plotOutput("wa_ppm")
               )
             )
-    )
+    ),
+    tabItem(tabName = "regression_summary_tab",
+            fluidRow(
+              box(
+                title = "Washington State Annual Energy-Related Carbon Emissions Results",
+                solidHeader = TRUE, collapsible = TRUE, background = "olive",
+                verbatimTextOutput("emit_summary")
+              ),
+              box(
+                title = "Washington State Energy-Related Carbon Emissions Per Capita",
+                solidHeader = TRUE, collapsible = TRUE, background = "olive",
+                verbatimTextOutput("emit_per_capita_summary")
+              ),
+              box(
+                title = "Washington State Annual Average Temperature Over Time",
+                solidHeader = TRUE, collapsible = TRUE, background = "olive", width = 12,
+                verbatimTextOutput("temp_summary")
+              )
+            )
+    ),
+    tabItem(tabName = "wa_counties_tab",
+            fluidRow(
+              box(
+                title = "Washington County Map Average Temperature Comparison", solidHeader = TRUE,
+                collapsible = TRUE, width = 12, background = "olive",
+                sliderInput("year_range", "Select a year range:",
+                            min = 1975, max = 2024, value = c(1985, 2000), step = 1, sep = ""),
+                selectInput("month", "Select a month:", choices = c("All Months", month.name), selected = "January"),
+                plotlyOutput("county_mapplot")
+              )
+            )
     )
   )
+)
 )
     
 
@@ -237,6 +397,7 @@ server <- function(input, output) {
       theme_classic() +
       scale_x_continuous(breaks=c(1970, 1980, 1990, 2000, 2010, 2020)) +
       labs(
+        title = "Washington State's Annual Energy-Related CO2 Emissions Per Capita",
         y = "Million Metric Tons CO2"
       )
   })
@@ -282,6 +443,24 @@ server <- function(input, output) {
         y = "Greenhouse Gas PPM"
       )
   })
+  
+  output$county_mapplot <- renderPlotly({
+    county_year(input$year_range[1], input$year_range[2], input$month)
+  })
+  
+  output$emit_summary <- renderPrint({
+    summary(emitSig)
+  })
+  
+  output$emit_per_capita_summary <- renderPrint({
+    summary(capitaSig)
+  })
+  
+  output$temp_summary <- renderPrint({
+    summary(tempSig)
+  })
+  
+  
 
 }
 
