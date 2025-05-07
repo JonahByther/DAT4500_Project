@@ -4,6 +4,7 @@ library(stats)
 library(scales)
 library(readxl)
 library(supernova)
+library(lm.beta)
 
 WA <- read.csv("WAmonth.csv", skip = 3) |> 
   separate(col = Date, into = c("Year", "Month"), sep = 4)|> 
@@ -48,19 +49,31 @@ emitSig <- lm(Emissions ~ Year, data = WA_emit)
 emitSig
 summary(emitSig)
 
+stdEmit <- lm(scale(Emissions) ~ scale(Year), data = WA_emit)
+summary(stdEmit)
+
 capitaSig <- lm(Per_Capita ~ Year, data = WA_emit)
 capitaSig
 summary(capitaSig)
+
+stdCap <- lm(scale(Per_Capita) ~ scale(Year), data = WA_emit)
+summary(stdCap)
 
 tempSig <-lm(Temp ~ Year, data = WA_emit)
 tempSig
 summary(tempSig)
 
+stdTemp <-lm(scale(Temp) ~ scale(Year), data = WA_emit)
+summary(stdTemp)
 
 #Predictive Models
 emitModel <- lm(Temp ~ Emissions, data = WA_emit)
 emitModel
 summary(emitModel)
+supernova(emitModel)
+
+stdEM  <- lm(scale(Temp) ~ (Emissions), data = WA_emit)
+summary(stdEM)
 
 capitaModel <- lm(Temp ~ Per_Capita, data = WA_emit)
 capitaModel
@@ -87,25 +100,29 @@ supernova(AGGI_Cumulative_Model)
 #Graphs
 WA_emit |> 
   ggplot(aes(x= Year, y = Emissions)) +
-  geom_point() +
-  geom_line() +
-  geom_smooth(method = "lm") +
+  geom_line(color = "black") +
+  geom_point(aes(color = Temp)) +
+  geom_smooth(method = "lm", color = "black", alpha = .3, linewidth = .6) +
   theme_classic() +
   scale_x_continuous(breaks=c(1970, 1980, 1990, 2000, 2010, 2020)) +
+  scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Temperature (°F)") +
   labs(
     title = "Washington State's Annual Energy-Related Carbon Emissions",
-    y = "Million Metric Tons CO2"
+    subtitle = "Measures how much CO2 is emitted when fossil fuels are burned to produce electricity",
+    y = "Metric Tons of CO2 (Millions)"
   )
 
 WA_emit |> 
   ggplot(aes(x= Year, y = Per_Capita)) +
-  geom_point() +
-  geom_line() +
-  geom_smooth(method = "lm") +
+  geom_line(color = "black") +
+  geom_point(aes(color = Temp)) +
+  geom_smooth(method = "lm", color = "black", alpha = .3, linewidth = .6) +
   theme_classic() +
   scale_x_continuous(breaks=c(1970, 1980, 1990, 2000, 2010, 2020)) +
+  scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Temperature (°F)") +
   labs(
     title = "Washington State's Annual Energy-Related CO2 Emissions Per Capita",
+    subtitle = "Measures how much CO2 is emitted when fossil fuels are burned to produce electricity",
     y = "Metric Tons of CO2 Per Person"
   )
 
@@ -113,11 +130,11 @@ WA |>
   ggplot(aes(x= Year, y = Temp)) +
   geom_point() +
   geom_line() +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", color = "darkred") +
   theme_classic() +
   scale_x_continuous(breaks=c(1970, 1980, 1990, 2000, 2010, 2020)) +
   labs(
-    title = "Washington State's Annual Average temperature",
+    title = "Washington State's Annual Average Temperature",
     y = "Temperature (°F)"
   )
 
