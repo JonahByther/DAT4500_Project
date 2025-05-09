@@ -25,10 +25,6 @@ capita <- read_excel("energy_CO2_per_capita.xlsx", skip = 4) |>
   pivot_longer(cols = `1970`:`2022`, names_to = "Year", values_to = "Per_Capita")
 capita$Year <- as.numeric(capita$Year)
 
-WA_emit <- emissions |> 
-  left_join(capita, by = c("Year" = "Year")) |> 
-  left_join(WA, by = c("Year" = "Year"))
-
 AGGI <- read.csv("AGGI_Table.csv", skip = 2)
 
 AGGI <- AGGI[-seq(nrow(AGGI),nrow(AGGI)-3),] |> 
@@ -40,9 +36,32 @@ AGGI <- AGGI[-seq(nrow(AGGI),nrow(AGGI)-3),] |>
          HFCs = `HFCs.`)
 AGGI$Year <- as.numeric(AGGI$Year)
 
-AGGI_emit <- WA_emit |> 
+ocean_heat <- read_csv("ocean-heat_fig-1.csv", skip = 6) |> 
+  filter(Year >= 1979) |> #1979 chosen for smoother joining
+  select(Year, NOAA) |> 
+  rename(Ocean_Heat = NOAA)
+
+sea_surface_temp <- read_csv("sea-surface-temp_fig-1.csv", skip = 6) |> 
+  filter(Year >= 1979) |> #1979 chosen for smoother joining
+  select(Year, `Annual anomaly`) |> 
+  rename(Sea_Surface_Temp_Anomaly = `Annual anomaly`)
+
+WA_emit <- emissions |> 
+  left_join(capita, by = c("Year" = "Year")) |> 
+  left_join(WA, by = c("Year" = "Year"))
+
+Combined <- WA_emit |> 
   filter(Year >= 1979) |> 
-  left_join(AGGI, by = c("Year" = "Year"))
+  left_join(AGGI, by = c("Year" = "Year")) |> 
+  left_join(ocean_heat, by = c("Year" = "Year")) |> 
+  left_join(sea_surface_temp, by = c("Year" = "Year"))
+
+Emissions_Oceans <- AGGI |> 
+  left_join(ocean_heat, by = c("Year" = "Year")) |> 
+  left_join(sea_surface_temp, by = c("Year" = "Year"))
+
+write.csv(Emissions_Oceans, "emissions_oceans.csv")
+
 
 #Significance Models
 emitSig <- lm(Emissions ~ Year, data = WA_emit)
@@ -79,15 +98,15 @@ capitaModel <- lm(Temp ~ Per_Capita, data = WA_emit)
 capitaModel
 summary(capitaModel)
 
-AGGI_Annual_Model <- lm(Temp ~ Annual_PPM, data = AGGI_emit)
+AGGI_Annual_Model <- lm(Temp ~ Annual_PPM, data = Combined)
 AGGI_Annual_Model
 summary(AGGI_Annual_Model)
 
-AGGI_Cumulative_Model <- lm(Temp ~ Cumulative_PPM, data = AGGI_emit)
+AGGI_Cumulative_Model <- lm(Temp ~ Cumulative_PPM, data = Combined)
 AGGI_Cumulative_Model
 summary(AGGI_Cumulative_Model)
 
-carbonModel <- lm(CO2 ~ Emissions, data = AGGI_emit)
+carbonModel <- lm(CO2 ~ Emissions, data = Combined)
 carbonModel
 summary(carbonModel)
 
@@ -138,7 +157,7 @@ WA |>
     y = "Temperature (°F)"
   )
 
-AGGI_emit |> 
+Combined |> 
   ggplot(aes(x= Year, y = Cumulative_PPM)) +
   geom_point() +
   geom_line() +
