@@ -340,17 +340,17 @@ sidebar <- dashboardSidebar(
               box(
                 title = "Washington State Annual Energy-Related Carbon Emissions Results",
                 solidHeader = TRUE, collapsible = TRUE, background = "olive",
-                verbatimTextOutput("emit_summary")
+                uiOutput("emit_summary")
               ),
               box(
                 title = "Washington State Energy-Related Carbon Emissions Per Capita",
                 solidHeader = TRUE, collapsible = TRUE, background = "olive",
-                verbatimTextOutput("emit_per_capita_summary")
+                uiOutput("emit_per_capita_summary")
               ),
               box(
                 title = "Washington State Annual Average Temperature Over Time",
                 solidHeader = TRUE, collapsible = TRUE, background = "olive", width = 12,
-                verbatimTextOutput("temp_summary")
+                uiOutput("temp_summary")
               )
             )
     ),
@@ -448,16 +448,21 @@ server <- function(input, output) {
     county_year(input$year_range[1], input$year_range[2], input$month)
   })
   
-  output$emit_summary <- renderPrint({
-    summary(emitSig)
+  output$emit_summary <- renderUI({
+    
+    tags$img(src = "Annual_Emission.png",
+             style = "width:100%; height:auto;")
   })
   
-  output$emit_per_capita_summary <- renderPrint({
-    summary(capitaSig)
+  output$emit_per_capita_summary <- renderUI({
+    
+    tags$img(src = "Per_Capita.png",
+             style = "width:100%; height:100%;")
   })
   
   output$temp_summary <- renderPrint({
-    summary(tempSig)
+    tags$img(src = "Average_Temp.png",
+             style = "width:100%; height:auto;")
   })
   
   
