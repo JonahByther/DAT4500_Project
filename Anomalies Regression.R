@@ -28,6 +28,10 @@ summary(ghgs_anom_sig)
 ghgs_ocean_sig <- lm(Ocean_Heat ~ Annual_PPM, data = joined_data)
 summary(ghgs_ocean_sig)
 
+#Multi regression for different GHGs
+
+ghg_multi_sig <- lm(Temperature.anomaly ~ Cumulative_PPM + Ocean_Heat, data = joined_data)
+summary(ghg_multi_sig)
 # Visuals
 
 

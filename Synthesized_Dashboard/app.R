@@ -457,7 +457,7 @@ server <- function(input, output) {
   output$emit_per_capita_summary <- renderUI({
     
     tags$img(src = "Per_Capita.png",
-             style = "width:100%; height:100%;")
+             style = "width:100%; height:auto;")
   })
   
   output$temp_summary <- renderPrint({
