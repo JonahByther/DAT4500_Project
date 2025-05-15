@@ -41,7 +41,9 @@ ocean_heat <- read_csv("ocean-heat_fig-1.csv", skip = 6) |>
   select(Year, NOAA) |> 
   rename(Ocean_Heat = NOAA)
 
-sea_surface_temp <- read_csv("sea-surface-temp_fig-1.csv", skip = 6) |> 
+sea <- read_csv("sea-surface-temp_fig-1.csv", skip = 6) 
+
+sea_surface_temp <- sea |> 
   filter(Year >= 1979) |> #1979 chosen for smoother joining
   select(Year, `Annual anomaly`) |> 
   rename(Sea_Surface_Temp_Anomaly = `Annual anomaly`)
@@ -83,6 +85,9 @@ summary(tempSig)
 
 stdTemp <-lm(scale(Temp) ~ scale(Year), data = WA_emit)
 summary(stdTemp)
+
+model <- lm(scale(Sea_Surface_Temp_Anomaly) ~ scale(Year), data = Combined)
+summary(model)
 
 #Predictive Models
 emitModel <- lm(Temp ~ Emissions, data = WA_emit)
@@ -131,8 +136,7 @@ confint(WA_model)
 #
 cor(Combined$Total_Rad_Force, Combined$Cumulative_PPM) #Pearson's r=.99
 
-Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force + Cumulative_PPM, data = Combined)
-Combo_model
+Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data = Combined)
 summary(Combo_model)
 supernova(Combo_model)
 
@@ -178,27 +182,81 @@ WA |>
     y = "Temperature (°F)"
   )
 
+#Cumulative PPM graph
 Combined |> 
   ggplot(aes(x= Year, y = Cumulative_PPM)) +
   geom_point() +
   geom_line() +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", color = "red3") +
   theme_classic() +
-  scale_x_continuous(breaks=c(1970, 1980, 1990, 2000, 2010, 2020)) +
+  scale_x_continuous(expand = c(0,1), breaks=c(1970, 1980, 1990, 2000, 2010, 2020)) +
+  scale_y_continuous(limits = c(0, 600), breaks = seq(0, 600, by = 100)) +
   labs(
-    title = "Cumulative PPM",
-    y = "Greenhouse Gas PPM"
+    title = "Annual Atmospheric Concentration of Greenhouse Gases",
+    subtitle = "Visualizing how the cumulative concentration of gases has changed over the past 45 years",
+    caption = "Measured gases include carbon dioxide, methane, nitrous oxide, CFC, HCFCs, and HFCs.
+    (CFC, HCFCs, and HFCs are synthetic gases, commonly used as aerosols or refrigerants)",
+    y = "Carbon Dioxide-Equivalent PPM"
   )
 
+#Radiative forcing graph
+Combined |> 
+  ggplot(aes(x= Year, y = Total_Rad_Force)) +
+  geom_point() +
+  geom_line() +
+  geom_smooth(method = "lm", color = "red3") +
+  theme_classic() +
+  scale_x_continuous(expand = c(0,1), breaks=c(1970, 1980, 1990, 2000, 2010, 2020)) +
+  scale_y_continuous(limits = c(0, 3.5), breaks = seq(0, 3.5, by = .5)) +
+  labs(
+    title = "Annual Levels of Global Radiative Forcing",
+    subtitle = "Visualizing how greenhouse gases increase the amount of energy in Earth's atmosphere",
+    caption = "Radiative forcing measures the difference between energy (in the form of radiation) entering the atmosphere
+    and leaving the atmosphere. Positive values indicate that there is more energy entering Earth than leaving
+    Earth, which results in warming",
+    y = "Global Radiative Forcing (W/m^2)"
+  )
 
+#Sea temp graph
+sea |> 
+  ggplot(aes(x= Year, y = `Annual anomaly`)) +
+  geom_line(aes(y=0), linetype = 2, linewidth = 1, color = "pink4") +
+  geom_text(x = 1910, y = .07, label = "1971-2000 Average Temperature", color = "pink4") +
+  geom_point() +
+  geom_line() +
+  geom_smooth(method = "lm", color = "red3") +
+  theme_classic() +
+  scale_x_continuous(expand = c(0,1), breaks= seq(1880, 2020, by = 10)) +
+  labs(
+    title = "Annual Sea Surface Temperature Anomalies",
+    subtitle = "Visualizes how the average surface temperature of the world's oceans has\nchanged since 1880",
+    caption = "Temperature anomalies describe how much a given year's temperature
+    deviates from the long-term average temperature of the specified period.",
+    y = "Temperature Anomaly (°F)"
+  )
 
-#Visual representation of multiple regression model - should we use it??
+#Visual representation of multiple regression model - adjustments made to 640:480 resolution
 Combined |> 
   ggplot(aes(x = Year, y = Temp)) +
   geom_line(linewidth = .5) +
-  geom_point(aes(alpha = Cumulative_PPM, color = Sea_Surface_Temp_Anomaly, size = Total_Rad_Force)) +
-  geom_point(aes(size = Total_Rad_Force), shape = 1, stroke = .8) +
-  scale_color_gradientn(colors = c("yellow", 'red', "red4")) +
-  scale_size(range = c(1,5)) +
-  scale_alpha(range = c(.4, 1))
+  geom_smooth(method = "lm", color = "orange") +
+  geom_point(aes(color = Sea_Surface_Temp_Anomaly, size = Total_Rad_Force)) +
+  geom_point(aes(size = Total_Rad_Force), shape = 1, stroke = .85) +
+  scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Sea Surface\nTemperature\nAnomaly (°F)") +
+  scale_size(range = c(1,5), name = "Global Radiative\nForcing (W/m^2)") +
+  labs(
+    title = "Significant Predictors of Washington's Average Annual Temperature",
+    subtitle =
+      "Visualizing the impacts of sea surface temperature and global radiative forcing on Washington's
+temperature over time",
+    caption = 
+    "Sea Surface Temperature Anomaly is calculated by comparing each year's global average sea surface temperature \n     to the average surface temperature from 1971-2000.\nRadiative forcing measures the difference between energy (in the form of radiation) entering the atmosphere and leaving\n     the atmosphere. Positive values indicate that there is more energy entering Earth, resulting in warming.",
+    y = "Temperature (°F)"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title.position = "plot",
+    plot.caption.position = "plot",
+    plot.caption = element_text(hjust = 0)
+  )
   
