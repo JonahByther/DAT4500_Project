@@ -24,6 +24,7 @@ library(stats)
 library(scales)
 library(readxl)
 library(dplyr)
+library(DT)
 
 ### Seasonal Anomalies Code - START
 
@@ -159,122 +160,41 @@ tempSig <-lm(Temp ~ Year, data = WA_emit)
 
 ### WA State Regression END
 
-### WA Counties Analysis START
+### Global Temp and Sea Regression
 
-WA_county <- read.csv("WA_county.csv")
+annual_anomalies <- read_csv("annual_temperature_anomalies.csv")
+emissions_oceans <- read.csv("emissions_oceans.csv")
 
-us_county <- us_map(region = "counties")
-WA_county_map <- us_county |>
-  filter(full == "Washington")
+annual_global_anomalies <- annual_anomalies |>
+  filter(Entity == "World")
 
-# Function to create the county map
-county_year <- function(baseline_year, comparison_year, selected_month) {
-  month_num <- match(selected_month, month.name)
-  
-  if (selected_month == "All Months") {
-    baseline_data <- WA_county |>
-      filter(year(DATE) == baseline_year) |> group_by(COUNTY) |> summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
-    
-    selected_data <- WA_county |>
-      filter(year(DATE) == comparison_year) |> group_by(COUNTY) |> summarise(TAVG = mean(TAVG, na.rm = TRUE))
-    
-  } else {
-    baseline_data <- WA_county |>
-      filter(year(DATE) == baseline_year, month(DATE) == month_num) |>
-      group_by(COUNTY) |> summarise(baseline_TAVG = mean(TAVG, na.rm = TRUE))
-    
-    selected_data <- WA_county |> filter(year(DATE) == comparison_year, month(DATE) == month_num) |> group_by(COUNTY) |> summarise(TAVG = mean(TAVG, na.rm = TRUE))
-  }
-  
-  comparison_data <- selected_data |>
-    left_join(baseline_data, by = "COUNTY") |>
-    mutate(temp_diff = TAVG - baseline_TAVG) |>
-    filter(!is.na(temp_diff)) |>
-    mutate(temp_category = cut(temp_diff,
-                               breaks = c(-Inf, -10, -5, 0, 5, 10, 15, Inf),
-                               labels = c("<= -10", "-10 to -5", "-5 to 0", "0 to 5", "5 to 10", "10 to 15", "> 15"),
-                               right = FALSE))
-  
-  
-  WA_county_map_joined <- WA_county_map |> left_join(comparison_data, by = c("county" = "COUNTY"))
-  WA_county_map_sf <- st_as_sf(WA_county_map_joined)
-  
-  color_palette <- c("<= -10" = "#08306B", "-10 to -5" = "#2171B5", "-5 to 0" = "#DEEBF7",
-                     "0 to 5" = "#FEE0D2", "5 to 10" = "#FC9272", "10 to 15" = "#CB181D", "> 15" = "#67000D")
-  
-  WA_county_map_sf <- WA_county_map_sf |> 
-    mutate(hover_text = paste0(
-      "County: ", county, "<br>",
-      "Avg Temp (", comparison_year, "): ", round(TAVG, 2), "°F<br>",
-      "Avg Temp (", baseline_year, "): ", round(baseline_TAVG, 2), "°F<br>",
-      "Temp Change: ", round(temp_diff, 2), "°F"
-    ))
-  
-  p <- ggplot(WA_county_map_sf) +
-    geom_sf(aes(fill = temp_category, text = hover_text), color = "white", size = 0.1) +
-    scale_fill_manual(values = color_palette, name = "Temp Diff (°F)") +
-    labs(
-    title = if (selected_month == "All Months") {
-    paste("Change in Avg Temp (Annual)", baseline_year, "vs", comparison_year)
-       } else {
-         paste("Change in Avg Temp (", selected_month, ")", baseline_year, "vs", comparison_year)
-       }
-     ) +
-    theme_minimal() +
-    theme(legend.position = "none")
-  
-  ggplotly(p, tooltip = "hover_text")
-}
+# Rounding to 2 decimal places to replicate DF
 
-# Function to generate the line graph
-line_graph <- function(selected_county, selected_month) {
-  month_num <- match(selected_month, month.name)
-  
-  data <- WA_county |>
-    filter(COUNTY == selected_county & year(DATE) != 2025) |>
-    mutate(Year = year(DATE))
-  
-  # If a specific month is selected, filter by month
-  if (selected_month != "All Months") {
-    data <- data |> filter(month(DATE) == month_num)
-  }
-  
-  data <- data |>
-    group_by(Year) |>
-    summarise(TAVG = mean(TAVG, na.rm = TRUE)) |>
-    arrange(Year)
-  
-  model <- lm(TAVG ~ Year, data = data)
-  p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
-  
-  pred_1975 <- predict(model, newdata = data.frame(Year = 1975))
-  pred_2024 <- predict(model, newdata = data.frame(Year = 2024))
-  
-  # Calculate the difference
-  temp_change <- round(pred_2024 - pred_1975, 3)
-  
-  # Add hover text
-  data <- data |>
-    mutate(hover_text = paste("Year: ", Year, "<br>", "Avg Temp: ", round(TAVG, 2), "°F"))
-  
-  # Plot
-  p <- ggplot(data, aes(x = Year, y = TAVG)) +
-    geom_line(color = "steelblue", size = 1.2) +
-    geom_point(aes(text = hover_text), color = "darkblue") +
-    geom_smooth(method = "lm", se = FALSE, color = "firebrick", linetype = "dashed") +
-    labs(
-      title = paste0(
-        if (!is.na(temp_change)) paste0(" (Change per year: ", p_value, "°F)"),
-        ""
-      ),
-    ) +
-    theme_minimal()+
-    theme(plot.title = element_text(hjust = 0.5))
-  
-  ggplotly(p, tooltip = "text")
-}
-### WA Counties Analysis END
+# Joining Data
+joined_global_data <- emissions_oceans |>
+  left_join(annual_global_anomalies, by = "Year")
 
+joined_global_data <- joined_global_data |>
+  rename(Temperature_anomaly = Temperature.anomaly)
+
+# Visuals
+
+
+anom_ocean_heat <- joined_global_data |>
+  mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",
+                       "\nOcean Heat Content: ", round(Ocean_Heat, 2), " (10<sup>22</sup> Joules)",
+                       "\nYear : ", Year)) |>
+  ggplot(aes(x = Temperature_anomaly, y = Ocean_Heat)) + 
+  geom_point(aes(text = text)) +
+  geom_line() +
+  geom_smooth(se = FALSE) +
+  labs(title = "Temperature Anomaly vs. Ocean Heat",
+       subtitle = "Temperature Anomaly: the difference between a year's average \nsurface temperature from the 1991-2020 mean, in degrees Celsius. \nOcean heat is the top 700 meters of the oceans.") +
+  ylab("Ocean Heat Content (10^22 Joules)") +
+  xlab("Temperature Anomaly") +
+  theme_minimal()
+
+ggplotly(anom_ocean_heat, tooltip = "text")
 
 
 # Define UI for application that draws a histogram
@@ -283,10 +203,10 @@ ui <- dashboardPage(skin = "blue",
 sidebar <- dashboardSidebar(
     sidebarMenu(
       menuItem("Global Anomalies", tabName = "anomalies_tab", icon = icon("globe")),
-      menuItem("Washington State Regression", tabName = "wa_state_tab", icon = icon("line-chart")),
-      menuItem("Regression Results", tabName = "regression_summary_tab", icon = icon("table")),
-      menuItem("Washington Counties Analysis", tabName = "wa_counties_tab", icon = icon("map")))
-  ),
+      menuItem("Washington Counties Analysis", tabName = "wa_counties_tab", icon = icon("map")),
+      menuItem("Ocean Temperature Analysis", tabName = "ocean_tab", icon = icon("tint")),
+      menuItem("Ocean Regression Results", tabName = "ocean_regression_tab", icon = icon("table"))
+  )),
   dashboardBody(
     tabItems(
     tabItem(tabName = "anomalies_tab",
@@ -312,60 +232,34 @@ sidebar <- dashboardSidebar(
           plotlyOutput("anomalies_mapPlot"))
     )
     ),
-    tabItem(tabName = "wa_state_tab",
-            fluidRow(
-              box(
-                title = "Washington CO2 Emissions Analysis",
-                solidHeader = TRUE, collapsible = TRUE, background = "olive", width = 12,
-              tabBox(
-                id = "tabset1", width = 12,
-                tabPanel("Annual Total Energy-Related Carbon Emissions", plotOutput("wa_emit_total")),
-                tabPanel("Energy-Related CO2 Emissions Per Capita", plotOutput("wa_emit_percapita"))
-              )
-              ),
-              box(
-                title = "Washington State's Annual Average temperature", solidHeader = TRUE,
-                collapsible = TRUE, width = 6, background = "olive",
-                plotOutput("wa_avg_temp")
-              ),
-              box(
-                title = "Cumulative Parts Per Million (PPM)", solidHeader = TRUE,
-                collapsible = TRUE, width = 6, side = "right", background = "olive",
-                plotOutput("wa_ppm")
-              )
-            )
-    ),
-    tabItem(tabName = "regression_summary_tab",
-            fluidRow(
-              box(
-                title = "Washington State Annual Energy-Related Carbon Emissions Results",
-                solidHeader = TRUE, collapsible = TRUE, background = "olive",
-                uiOutput("emit_summary")
-              ),
-              box(
-                title = "Washington State Energy-Related Carbon Emissions Per Capita",
-                solidHeader = TRUE, collapsible = TRUE, background = "olive",
-                uiOutput("emit_per_capita_summary")
-              ),
-              box(
-                title = "Washington State Annual Average Temperature Over Time",
-                solidHeader = TRUE, collapsible = TRUE, background = "olive", width = 12,
-                uiOutput("temp_summary")
-              )
-            )
-    ),
     tabItem(tabName = "wa_counties_tab",
             fluidRow(
               box(
                 title = "Washington County Map Average Temperature Comparison", solidHeader = TRUE,
                 collapsible = TRUE, width = 12, background = "olive",
-                sliderInput("year_range", "Select a year range:",
-                            min = 1975, max = 2024, value = c(1985, 2000), step = 1, sep = ""),
                 selectInput("month", "Select a month:", choices = c("All Months", month.name), selected = "January"),
-                plotlyOutput("county_mapplot")
+                plotOutput("county_mapplot")
               )
             )
-    )
+    ),
+    tabItem(tabName = "ocean_tab",
+            fluidRow(
+              box(
+                title = "Ocean Analysis", solidHeader = TRUE,
+                collapsible = TRUE, width = 12, status = "success",
+                DT::dataTableOutput("emissions_ocean_table")
+              ),
+              box(title = "Observations", background = "blue", "Example Text that we can put for analysis paragraphs etc.")
+            )
+    ),
+    tabItem(tabName = "ocean_regression_tab",
+            fluidRow(
+              box(
+                title = "Ocean Regression",
+                plotlyOutput("ocean_anom_graph")
+              )
+            )
+            )
   )
 )
 )
@@ -444,8 +338,42 @@ server <- function(input, output) {
       )
   })
   
-  output$county_mapplot <- renderPlotly({
-    county_year(input$year_range[1], input$year_range[2], input$month)
+  output$county_mapplot <- renderPlot({
+    
+    ggplot(long_data, aes(x = Month, y = Count, fill = Category)) +
+      geom_col() +
+      scale_fill_manual(
+        values = c(
+          "Positive_Slope_Counties" = "#FF0000",
+          "Not_Significant" = "#808080",
+          "Negative_Slope_Counties" = "#0000FF"
+        )
+      )+
+      labs(
+        title = "Monthly Regression Summary Across Counties",
+        x = "Month",
+        y = "Number of Counties",
+        fill = "Category"
+      ) +
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1)
+      )
+  })
+  
+  output$ocean_anom_graph <- renderPlotly({
+    
+    ggplotly(anom_ocean_heat, tooltip = "text")
+  })
+  
+  output$emissions_ocean_table <- DT::renderDataTable({
+    DT::datatable(
+      joined_global_data,
+      options = list(
+        scrollX = TRUE,
+        autoWidth = TRUE
+      )
+    )
   })
   
   output$emit_summary <- renderUI({
