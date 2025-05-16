@@ -17,32 +17,29 @@ annual_global_anomalies <- annual_anomalies |>
 joined_global_data <- emissions_oceans |>
   left_join(annual_global_anomalies, by = "Year")
 
-# Regression Summary
+joined_global_data <- joined_global_data |>
+  rename(Temperature_anomaly = Temperature.anomaly)
 
-seasurface_anom_sig <- lm(Sea_Surface_Temp_Anomaly ~ Temperature.anomaly, data = joined_data)
-summary(ocean_anom_sig)
-
-ghgs_anom_sig <- lm(Annual_PPM ~ Temperature.anomaly, data = joined_data)
-summary(ghgs_anom_sig)
-
-ghgs_ocean_sig <- lm(Ocean_Heat ~ Annual_PPM, data = joined_data)
-summary(ghgs_ocean_sig)
-
-#Multi regression for different GHGs
-
-ghg_multi_sig <- lm(Temperature.anomaly ~ Cumulative_PPM + Ocean_Heat, data = joined_data)
-summary(ghg_multi_sig)
 # Visuals
 
 
-joined_global_data |>
-  ggplot(aes(x = Temperature.anomaly, y = Sea_Surface_Temp_Anomaly)) + 
-  geom_point() +
+anom_ocean_heat <- joined_global_data |>
+  mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",
+         "\nOcean Heat Content: ", round(Ocean_Heat, 2), " (10<sup>22</sup> Joules)",
+         "\nYear : ", Year)) |>
+  ggplot(aes(x = Temperature_anomaly, y = Ocean_Heat)) + 
+  geom_point(aes(text = text)) +
+  geom_line() +
   geom_smooth(se = FALSE) +
-  labs(title = "Temperature Anomaly vs. Sea Surface Temperature Anomaly",
-       subtitle = "Temperature Anomaly calculated as difference between average surface temperature from\nthe mean temperature of the same month during the period 1991-2020. \nSea Surface Anomaly uses 1971 - 2000 average to depict change.") +
-  ylab("Sea Surface Temperature Anomaly") +
-  xlab("Temperature Anomaly")
+  labs(title = "Temperature Anomaly vs. Ocean Heat",
+       subtitle = "Temperature Anomaly: the difference between a year's average \nsurface temperature from the 1991-2020 mean, in degrees Celsius. \nOcean heat is the top 700 meters of the oceans.") +
+  ylab("Ocean Heat Content (10^22 Joules)") +
+  xlab("Temperature Anomaly") +
+  theme_minimal()
+
+ggplotly(anom_ocean_heat, tooltip = "text")
+
+
 
 joined_global_data |>
   ggplot(aes(x = Temperature.anomaly, y = Annual_PPM)) + 
@@ -59,3 +56,19 @@ joined_global_data |>
   labs(title = "Annual Greenhouse Gas Concentrations and Ocean Heat") +
   xlab("Annual PPM") +
   ylab("Ocean Heat Change from Previous Year")
+
+# Regression Summary
+
+seasurface_anom_sig <- lm(Temperature.anomaly~ Ocean_Heat, data = joined_global_data)
+summary(ocean_anom_sig)
+
+ghgs_anom_sig <- lm(Total_Rad_Force ~ Temperature.anomaly, data = joined_global_data)
+summary(ghgs_anom_sig)
+
+ghgs_ocean_sig <- lm(Ocean_Heat ~ Annual_PPM, data = joined_global_data)
+summary(ghgs_ocean_sig)
+
+#Multi regression for different GHGs
+
+ghg_multi_sig <- lm(Temperature.anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
+summary(ghg_multi_sig)
