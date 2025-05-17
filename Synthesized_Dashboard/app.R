@@ -134,7 +134,10 @@ county_significance <- long_data |>
   theme_minimal() +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1)
-  )
+  ) +
+  annotate("text", x = "July", y = 42, label = "<b>Summer months have high significance with positive slope") +
+  geom_segment(aes(x = "July", y = 40, xend = "June", yend = 35), 
+               arrow = arrow())
   
   ggplotly(county_significance, tooltip = "text")
 

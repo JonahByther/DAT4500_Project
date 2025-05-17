@@ -59,7 +59,7 @@ joined_global_data |>
 
 # Regression Summary
 
-seasurface_anom_sig <- lm(Temperature.anomaly~ Ocean_Heat, data = joined_global_data)
+seasurface_anom_sig <- lm(Temperature_anomaly~ Ocean_Heat, data = joined_global_data)
 summary(ocean_anom_sig)
 
 ghgs_anom_sig <- lm(Total_Rad_Force ~ Temperature.anomaly, data = joined_global_data)
@@ -70,5 +70,5 @@ summary(ghgs_ocean_sig)
 
 #Multi regression for different GHGs
 
-ghg_multi_sig <- lm(Temperature.anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
+ghg_multi_sig <- lm(Temperature_anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
 summary(ghg_multi_sig)
