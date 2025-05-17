@@ -5,6 +5,9 @@ library(scales)
 library(readxl)
 library(supernova)
 library(apaTables)
+library(psych)
+library(car)
+library(factoextra)
 
 WA <- read.csv("WAmonth.csv", skip = 3) |> 
   separate(col = Date, into = c("Year", "Month"), sep = 4)|> 
@@ -86,7 +89,7 @@ summary(tempSig)
 stdTemp <-lm(scale(Temp) ~ scale(Year), data = WA_emit)
 summary(stdTemp)
 
-model <- lm(scale(Sea_Surface_Temp_Anomaly) ~ scale(Year), data = Combined)
+model <- lm(Temp ~ Sea_Surface_Temp_Anomaly, data = Combined)
 summary(model)
 
 #Predictive Models
@@ -119,26 +122,32 @@ supernova(capitaModel)
 supernova(AGGI_Rad_Model)
 supernova(AGGI_Cumulative_Model)
 
-#Original multiple regression model
-cor(Combined$Cumulative_PPM, Combined$Sea_Surface_Temp_Anomaly) #Pearson's r=.90
-WA_model <- lm(Temp ~ Cumulative_PPM + Sea_Surface_Temp_Anomaly, data = Combined)
-
-summary(WA_model)
-supernova(WA_model)
-confint(WA_model)
 
 
-#Improved multiple regression model (with justifications for new variables)
-#
-# Time was added as a predictor because there is a legit trend that is present
-# Rad_Force was added because it's a different variable than PPM (which I initially thought it was)
-# No ocean heat because sea surface temperature has a more direct affect on land temps
-#
-cor(Combined$Total_Rad_Force, Combined$Cumulative_PPM) #Pearson's r=.99
+#Multiple regression model
 
 Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data = Combined)
 summary(Combo_model)
 supernova(Combo_model)
+
+std_combo <- lm(scale(Temp) ~ scale(Year) + scale(Sea_Surface_Temp_Anomaly) + scale(Total_Rad_Force), data = Combined)
+summary(std_combo)
+
+
+#Variable correlations, VIF, and PCA
+vif(Combo_model)
+
+Combined |> 
+  select(Temp, Sea_Surface_Temp_Anomaly, Total_Rad_Force) |> 
+  apa.cor.table()
+
+Combo <- Combined |> 
+  select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force) 
+
+combo_PCA <- prcomp(Combo, scale = T)
+summary(combo_PCA)
+
+fviz_eig(combo_PCA, addlabels = T)
 
 
 #Graphs
