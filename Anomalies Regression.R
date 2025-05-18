@@ -22,6 +22,19 @@ joined_global_data <- joined_global_data |>
 
 # Visuals
 
+anom_seatemp <- joined_global_data |>
+  ggplot(aes(x = Year)) +
+  geom_point(aes(y = Temperature_anomaly)) +
+  geom_point(aes(y = Sea_Surface_Temp_Anomaly)) +
+  geom_line(aes(y = Temperature_anomaly)) +
+  geom_line(aes(y = Sea_Surface_Temp_Anomaly)) +
+  ylab("Anomaly Temperature in Celcius") +
+  theme_minimal() +
+  ggtitle("Sea Surface Anomaly and Temperature Anomaly by Year", 
+          subtitle = "Temperature anomaly calculated as difference between a year's average surface temperature \nfrom the 1991-2020 mean. Sea Surface Anomaly calculated as \ndifference between the year and 1971-2000 mean") 
+
+anom_seatemp
+  
 
 anom_ocean_heat <- joined_global_data |>
   mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",

@@ -77,6 +77,12 @@ month_order <- c("January", "February", "March", "April", "May", "June",
 
 long_data$Month <- factor(long_data$Month, levels = month_order)
 
+long_data <- long_data |>
+  mutate(Category = recode(Category,
+                           "Positive_Slope_Counties" = "Positive Slope Counties",
+                           "Negative_Slope_Counties" = "Negative Slope Counties",
+                           "Not_Significant" = "Not Significant"))
+
 
 
 

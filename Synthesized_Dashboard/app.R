@@ -24,7 +24,11 @@ library(stats)
 library(scales)
 library(readxl)
 library(dplyr)
+library(car)
+library(apaTables)
 library(DT)
+library(psych)
+library(factoextra)
 
 ### Seasonal Anomalies Code - START
 
@@ -95,7 +99,7 @@ function1 <-function(TempYears) {
   }
   
   plotlyWTA_24 <- WorldTempAnom_24 |>
-    mutate(text = paste("<b>",Entity,"</b>\n",Year,"</b>\n",temperature_anomaly,"</b>°C")) |>
+    mutate(text = paste("<b>",Entity,"</b>\n",Year,"</b>\n",round(temperature_anomaly, 2), "</b>°C")) |>
     
     ggplot() +
     geom_sf(aes(fill=temperature_anomaly, text=text), color="black") +
@@ -113,6 +117,8 @@ function1 <-function(TempYears) {
 ### WA County Significance
 WA_county <- read.csv("WA_county.csv")
 
+
+
 county_significance <- long_data |>
   mutate(text = paste0("Category: ", Category,
                        "\nMonth ", Month, 
@@ -121,9 +127,9 @@ county_significance <- long_data |>
   geom_col(aes(text = text)) +
   scale_fill_manual(
     values = c(
-      "Positive_Slope_Counties" = "#FF0000",
-      "Not_Significant" = "#808080",
-      "Negative_Slope_Counties" = "#0000FF"
+      "Positive Slope Counties" = "#FF0000",
+      "Not Significant" = "#808080",
+      "Negative Slope Counties" = "#0000FF"
     )
   )+
   labs(
@@ -133,11 +139,17 @@ county_significance <- long_data |>
   ) +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.title = element_text(hjust = 0.5)
   ) +
   annotate("text", x = "July", y = 42, label = "<b>Summer months have high significance with positive slope") +
-  geom_segment(aes(x = "July", y = 40, xend = "June", yend = 35), 
+  geom_segment(aes(x = 6.5, y = 40, xend = "June", yend = 35), 
+               arrow = arrow()) +
+  geom_segment(aes(x = 7, y = 40, xend = "July", yend = 35),
+               arrow = arrow()) +
+  geom_segment(aes(x = 7.5, y = 40, xend = "August", yend = 35),
                arrow = arrow())
+  
   
   ggplotly(county_significance, tooltip = "text")
 
@@ -157,9 +169,7 @@ joined_global_data <- emissions_oceans |>
 joined_global_data <- joined_global_data |>
   rename(Temperature_anomaly = Temperature.anomaly)
 
-# Visuals
-
-
+# Anomaly Ocean Line Chart
 anom_ocean_heat <- joined_global_data |>
   mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",
                        "\nOcean Heat Content: ", round(Ocean_Heat, 2), " (10<sup>22</sup> Joules)",
@@ -168,11 +178,58 @@ anom_ocean_heat <- joined_global_data |>
   geom_point(aes(text = text)) +
   geom_line() +
   geom_smooth(se = FALSE) +
-  labs(title = "Temperature Anomaly vs. Ocean Heat",
+  labs(
        subtitle = "Temperature Anomaly: the difference between a year's average \nsurface temperature from the 1991-2020 mean, in degrees Celsius. \nOcean heat is the top 700 meters of the oceans.") +
   ylab("Ocean Heat Content (10^22 Joules)") +
   xlab("Temperature Anomaly") +
   theme_minimal()
+
+ocean_heat <- read_csv("ocean-heat_fig-1.csv", skip = 6) |> 
+  filter(Year >= 1979) |> #1979 chosen for smoother joining
+  select(Year, NOAA) |> 
+  rename(Ocean_Heat = NOAA)
+
+sea_surface_temp <- sea |> 
+  filter(Year >= 1979) |> #1979 chosen for smoother joining
+  select(Year, `Annual anomaly`) |> 
+  rename(Sea_Surface_Temp_Anomaly = `Annual anomaly`)
+
+WA_emit <- emissions |> 
+  left_join(capita, by = c("Year" = "Year")) |> 
+  left_join(WA, by = c("Year" = "Year"))
+
+Combined <- WA_emit |> 
+  filter(Year >= 1979) |> 
+  left_join(AGGI, by = c("Year" = "Year")) |> 
+  left_join(ocean_heat, by = c("Year" = "Year")) |> 
+  left_join(sea_surface_temp, by = c("Year" = "Year")) |>
+  rename("Total_Rad_Force" = "Annual_PPM")
+  
+#Sea Surface Temp and Rad force Regression Graph
+sea_rad_regression <- Combined |> 
+  ggplot(aes(x = Year, y = Temp)) +
+  geom_line(linewidth = .5) +
+  geom_smooth(method = "lm", color = "orange") +
+  geom_point(aes(color = Sea_Surface_Temp_Anomaly, size = Total_Rad_Force)) +
+  geom_point(aes(size = Total_Rad_Force), shape = 1, stroke = .85) +
+  scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Sea Surface\nTemperature\nAnomaly (°F)") +
+  scale_size(range = c(1,5), name = "Global Radiative\nForcing (W/m^2)") +
+  labs(
+    #title = "Significant Predictors of Washington's Average Annual Temperature",
+    #subtitle =
+     # "Visualizing the impacts of sea surface temperature and global radiative forcing on Washington's
+#temperature over time",
+    #caption = 
+     # "Sea Surface Temperature Anomaly is calculated by comparing each year's global average sea surface temperature \n     to the average surface temperature from 1971-2000.\nRadiative forcing measures the difference between energy (in the form of radiation) entering the atmosphere and leaving\n     the atmosphere. Positive values indicate that there is more energy entering Earth, resulting in warming.",
+    y = "Temperature (°F)"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title.position = "plot",
+    plot.caption.position = "plot",
+    plot.caption = element_text(hjust = 0)
+  )
+
 
 
 # Define UI for application that draws a histogram
@@ -201,13 +258,16 @@ sidebar <- dashboardSidebar(
                   choices = c("Winter", "Spring", "Summer", "Fall", "All Seasons"),
                   selected = "Winter"),
         plotlyOutput("seasonPlot", height = 250),
+      fluidRow(htmlOutput("seasons_caption"))
       ),
       box(title = "Annual Anomalies - World Map", solidHeader = TRUE,
           collapsible = TRUE, width = 12, background = "olive",
           selectInput("TempYears", "Select Year for Global Map:",
                       choices = sort(unique(AnnTempAnomolies$Year)),
                       selected = 2024),
-          plotlyOutput("anomalies_mapPlot"))
+          plotlyOutput("anomalies_mapPlot"),
+          fluidRow(htmlOutput("anomalies_caption"))
+          )
     )
     ),
     tabItem(tabName = "wa_counties_tab",
@@ -215,7 +275,8 @@ sidebar <- dashboardSidebar(
               box(
                 title = "Washington Monthly Regression Summary Across Counties", solidHeader = TRUE,
                 collapsible = TRUE, width = 12, background = "olive",
-                plotlyOutput("county_barplot")
+                plotlyOutput("county_barplot"),
+                fluidRow(htmlOutput("county_caption"))
               )
             )
     ),
@@ -232,8 +293,16 @@ sidebar <- dashboardSidebar(
     tabItem(tabName = "ocean_regression_tab",
             fluidRow(
               box(
-                solidHeader = TRUE,collapsible = TRUE, width = 6, background = "olive",
-                plotlyOutput("ocean_anom_graph")
+                title = "Temperature Anomaly vs. Ocean Heat", solidHeader = TRUE, 
+                collapsible = TRUE, width = 8, background = "olive",
+                plotlyOutput("ocean_anom_graph"),
+                fluidRow(htmlOutput("ocean_anom_caption"))
+              ),
+              box(
+                title = "Significant Predictors of Washington's Average Annual Temperature", solidHeader = TRUE, 
+                collapsible = TRUE, width = 8, background = "olive",
+                plotOutput("sea_rad_regression_graph"),
+                fluidRow(htmlOutput("sea_rad_regression_caption"))
               )
             )
             )
@@ -298,7 +367,38 @@ server <- function(input, output) {
              style = "width:100%; height:auto;")
   })
   
+  output$sea_rad_regression_graph <- renderPlot({
+    sea_rad_regression
+  })
   
+  output$seasons_caption <- renderText({
+    paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature anomaly calculated as difference of specific month average surface temperature from the 1991-2020 mean
+          <br>&ensp;&ensp;&ensp;Source: Our World in Data</font></p>")
+  })
+  
+  output$anomalies_caption <- renderText({
+    paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature anomaly calculated as difference between a year's average surface temperature from the 1991-2020 mean
+          <br>&ensp;&ensp;&ensp;Source: Our World in Data</font></p>")
+    })
+  
+  output$county_caption <- renderText({
+    paste("<font size='2px;'>&ensp;&ensp;&ensp;Summer months are defined as June-August. However, we do see high positive significant slopes in May and September as well. 
+    <br>&ensp;&ensp;&ensp;Positive slope refers to a county's slope that is increasing in temperature, or getting hotter. 
+          Negative slope refers to a slope that is decreasing in temperature, or getting colder.
+          <br>&ensp;&ensp;&ensp;Source: National Atmospheric and Atmospheric Administration</font></p>")
+  })
+  
+  output$ocean_anom_caption <- renderText({
+    paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature Anomaly: the difference between a year's average surface temperature from the 1991-2020 mean, in degrees Celsius. 
+          <br>&ensp;&ensp;&ensp;Ocean heat is the top 700 meters of the oceans.")
+  })
+  
+  output$sea_rad_regression_caption <- renderText({
+    paste("<font size='2px;'>&ensp;&ensp;&ensp;Sea Surface Temperature Anomaly is calculated by comparing each year's global average sea surface temperature to the average  
+    <br>&ensp;&ensp;&ensp;&ensp;surface temperature from 1971-2000. Radiative forcing measures the difference between energy (in the form of radiation) entering
+    <br>&ensp;&ensp;&ensp;the atmosphere and leaving the atmosphere. Positive values indicate that there is more energy entering Earth,
+    <br>&ensp;&ensp;&ensp;&ensp;resulting in warming temperature over time.") 
+  })
 
 }
 
