@@ -167,7 +167,8 @@ joined_global_data <- emissions_oceans |>
   left_join(annual_global_anomalies, by = "Year")
 
 joined_global_data <- joined_global_data |>
-  rename(Temperature_anomaly = Temperature.anomaly)
+  rename(Temperature_anomaly = Temperature.anomaly) |>
+  rename(Total_Rad_Force = Annual_PPM)
 
 # Anomaly Ocean Line Chart
 anom_ocean_heat <- joined_global_data |>
@@ -230,7 +231,12 @@ sea_rad_regression <- Combined |>
     plot.caption = element_text(hjust = 0)
   )
 
+#Regression Models
 
+Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data = Combined)
+
+ghg_multi_sig <- lm(Temperature_anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
+summary(ghg_multi_sig)
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(skin = "blue",
@@ -267,7 +273,7 @@ sidebar <- dashboardSidebar(
                       selected = 2024),
           plotlyOutput("anomalies_mapPlot"),
           fluidRow(htmlOutput("anomalies_caption"))
-          )
+          ),
     )
     ),
     tabItem(tabName = "wa_counties_tab",
@@ -299,10 +305,20 @@ sidebar <- dashboardSidebar(
                 fluidRow(htmlOutput("ocean_anom_caption"))
               ),
               box(
+                title = "Temperature Anomaly Multi Regression", solidHeader = TRUE,
+                collapsible = TRUE, width = 4, background = "olive",
+                verbatimTextOutput("anom_multi_regression")
+              ),
+              box(
                 title = "Significant Predictors of Washington's Average Annual Temperature", solidHeader = TRUE, 
                 collapsible = TRUE, width = 8, background = "olive",
                 plotOutput("sea_rad_regression_graph"),
                 fluidRow(htmlOutput("sea_rad_regression_caption"))
+              ),
+              box(
+                title = "Washington Temperature Multi Regression", solidHeader = TRUE, collapsible = TRUE,
+                width = 4, background = "olive",
+                verbatimTextOutput("combined_regression")
               )
             )
             )
@@ -398,6 +414,14 @@ server <- function(input, output) {
     <br>&ensp;&ensp;&ensp;&ensp;surface temperature from 1971-2000. Radiative forcing measures the difference between energy (in the form of radiation) entering
     <br>&ensp;&ensp;&ensp;the atmosphere and leaving the atmosphere. Positive values indicate that there is more energy entering Earth,
     <br>&ensp;&ensp;&ensp;&ensp;resulting in warming temperature over time.") 
+  })
+  
+  output$combined_regression <- renderPrint({
+    summary(Combo_model)
+  })
+  
+  output$anom_multi_regression <- renderPrint({
+    summary(ghg_multi_sig)
   })
 
 }

@@ -5,6 +5,10 @@ library(dplyr)
 library(lubridate)
 library(sf)
 library(scales)
+library(corrr)
+library(ggcorrplot)
+library(FactoMineR)
+
 annual_anomalies <- read.csv("annual-temperature-anomalies.csv")
 emissions_oceans <- read.csv("emissions_oceans.csv")
 
@@ -85,3 +89,23 @@ summary(ghgs_ocean_sig)
 
 ghg_multi_sig <- lm(Temperature_anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
 summary(ghg_multi_sig)
+
+### PCA Analysis Attempt
+
+#Removing all non numerical data and unecessary variables
+global_numerical_data <- joined_global_data[-c(1, 3:8, 11:12, 15:16)]
+
+#Normalizing Data
+global_normalized_data <- scale(global_numerical_data)
+
+#Applying PCA
+pca_global <- princomp(global_normalized_data)
+summary(pca_global) 
+
+#Loading matrix of first 2 components
+pca_global$loadings[, 1:2]
+
+#Scree Plot
+fviz_eig(pca_global, addlabels = TRUE)
+
+
