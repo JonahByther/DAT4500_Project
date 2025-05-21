@@ -7,6 +7,9 @@ library(supernova)
 library(apaTables)
 library(psych)
 library(car)
+library(corrr)
+library(ggcorrplot)
+library(FactoMineR)
 library(factoextra)
 
 WA <- read.csv("WAmonth.csv", skip = 3) |> 
@@ -67,7 +70,8 @@ Combined <- WA_emit |>
 #write.csv(Emissions_Oceans, "emissions_oceans.csv")
 
 
-#Significance Models
+
+#--------------------------------Significance Models---------------------------#
 emitSig <- lm(Emissions ~ Year, data = WA_emit)
 emitSig
 summary(emitSig)
@@ -124,7 +128,7 @@ supernova(AGGI_Cumulative_Model)
 
 
 
-#Multiple regression model
+#-------------------------------Multiple regression model----------------------#
 
 Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data = Combined)
 summary(Combo_model)
@@ -134,23 +138,48 @@ std_combo <- lm(scale(Temp) ~ scale(Year) + scale(Sea_Surface_Temp_Anomaly) + sc
 summary(std_combo)
 
 
-#Variable correlations, VIF, and PCA
-vif(Combo_model)
 
+#--------------------------------------PCA-------------------------------------#
+
+#Variable correlations
 Combined |> 
-  select(Temp, Sea_Surface_Temp_Anomaly, Total_Rad_Force) |> 
+  select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force) |> 
   apa.cor.table()
 
-Combo <- Combined |> 
-  select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force) 
+#VIF
+vif(Combo_model)
 
-combo_PCA <- prcomp(Combo, scale = T)
-summary(combo_PCA)
+#--PCA--#
 
-fviz_eig(combo_PCA, addlabels = T)
+#Data normalization
+datCombo <- Combined |> 
+  select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force)
+normCombo <- scale(datCombo)
 
 
-#Graphs
+#PCA summary
+data.pca <- princomp(normCombo)
+summary(data.pca)
+
+data.pca$loadings[, 1:3]
+
+#Scree plot
+fviz_eig(data.pca, addlabels = TRUE)
+
+#Biplot of attributes
+fviz_pca_var(data.pca, col.var = "black")
+
+#Contribution of variables (Cos2)
+fviz_cos2(data.pca, choice = "var", axes = 1:2)
+
+#Biplot + Cos2
+fviz_pca_var(data.pca, col.var = "cos2",
+             gradient.cols = c("black", "orange", "green"),
+             repel = TRUE)
+
+
+
+#----------------------------------Graphs--------------------------------------#
 WA_emit |> 
   ggplot(aes(x= Year, y = Emissions)) +
   geom_line(color = "black") +
@@ -254,7 +283,7 @@ Combined |>
   scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Sea Surface\nTemperature\nAnomaly (°F)") +
   scale_size(range = c(1,5), name = "Global Radiative\nForcing (W/m^2)") +
   labs(
-    title = "Significant Predictors of Washington's Average Annual Temperature",
+    title = "Predictors of Washington's Average Annual Temperature",
     subtitle =
       "Visualizing the impacts of sea surface temperature and global radiative forcing on Washington's
 temperature over time",
