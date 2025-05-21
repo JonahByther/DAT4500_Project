@@ -177,8 +177,26 @@ fviz_pca_var(data.pca, col.var = "cos2",
              gradient.cols = c("black", "orange", "green"),
              repel = TRUE)
 
+#UPDATED PCA MODEL
+pcModel <- lm(Temp ~ data.pca$scores, data = Combined)
+summary(pcModel)
 
-
+#These interpretations come from synthesis of loadings AND model results/coefficients
+#Component 1 is when all variables move together in lockstep, temperature just goes up and up; basically average them together
+#Component 2 is when Year and Rad force move together, sea surface unusually low. If sea temp dips relative to rad force, downward adjustment
+#Component 3 year moves constantly, but rad force doesnt move as much as expected, so theres a negative adjustment (little dip)
+#Components 2 and 3 capture variance when one lags (if one var lags behind, temp decreases a bit)
+#
+#PCA model gives similar results (R2 and F) because it uses the same information as normal model, just rearranges it
+#   standardizes all variables (compare thousands of year scale to tenths place of radiative force/sea temp)
+#Interesting that all 3 components are significant
+#Even though component 3 captures less than 1% of variance, it is significant shows a meaningful trend/relationship
+#   If we drop component 3, both R2 and adj R2 have a big decrease, with only a small increase in F
+#      via lm(formula = Temp ~ data.pca$scores[, 1:2], data = Combined)
+#Year is negative in OG model because temp already rises from Rad and Sea, so year acts as an adjustment (no clear reason why)
+#
+#
+#
 #----------------------------------Graphs--------------------------------------#
 WA_emit |> 
   ggplot(aes(x= Year, y = Emissions)) +
