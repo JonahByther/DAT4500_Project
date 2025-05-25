@@ -8,7 +8,7 @@ library(scales)
 library(corrr)
 library(ggcorrplot)
 library(FactoMineR)
-
+library(factoextra)
 annual_anomalies <- read.csv("annual-temperature-anomalies.csv")
 emissions_oceans <- read.csv("emissions_oceans.csv")
 
@@ -93,19 +93,49 @@ summary(ghg_multi_sig)
 ### PCA Analysis Attempt
 
 #Removing all non numerical data and unecessary variables
-global_numerical_data <- joined_global_data[-c(1, 3:8, 11:12, 15:16)]
+global_numerical_data <- joined_global_data[-c(1, 3:8, 10:13, 15:17)]
 
 #Normalizing Data
 global_normalized_data <- scale(global_numerical_data)
+
 
 #Applying PCA
 pca_global <- princomp(global_normalized_data)
 summary(pca_global) 
 
 #Loading matrix of first 2 components
-pca_global$loadings[, 1:2]
+pca_global$loadings[, 1:3]
 
 #Scree Plot
 fviz_eig(pca_global, addlabels = TRUE)
+
+#Biplot of Variables
+fviz_pca_var(pca_global, col.var = "black", repel = TRUE) +
+  xlim(0, 1.2)
+
+#Contribution of each variable to the principal components
+fviz_cos2(pca_global, choice = "var", axes = 1:2)
+
+#Combined Biplot and Cos2 Scores (contribution of each variable)
+fviz_pca_var(pca_global, col.var = "cos2",
+             gradient.cols = c("black", "orange", "green"),
+             repel = TRUE)
+
+#Regression of PCA
+anom_pca_regression <- lm(Temperature_anomaly ~ pca_global$scores[, 1:3], data = joined_global_data)
+summary(anom_pca_regression)
+
+#Explanation for 1
+  # All variables are increasing at the same rate. Anomaly goes up when Year, Total Rad, Ocean, and Sea surface temp increase. 
+  # This is shown where all of component one have same relatively positive loading and coefficient of regression is positive.
+
+#Explanation for component 2
+  # Year, Rad, PPM increase. Ocean heat has little to no effect on component 2. Anomaly decreases. 
+  # Strong anomaly decrease shows as component increases sea temp anomaly will decrease and vice versa.
+  # Higher component 2 means higher rad force and ppm as time goes, but lower sea temp
+  # The lagging of sea temp means a overall decrease in temp anomaly
+
+
+
 
 

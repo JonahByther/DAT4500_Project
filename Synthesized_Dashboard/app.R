@@ -121,8 +121,8 @@ WA_county <- read.csv("WA_county.csv")
 
 county_significance <- long_data |>
   mutate(text = paste0("Category: ", Category,
-                       "\nMonth ", Month, 
-                       "\nSignificant Counties: ", Count)) |>
+                       "\nMonth: ", Month, 
+                       "\nCounties: ", Count)) |>
   ggplot(aes(x = Month, y = Count, fill = Category)) +
   geom_col(aes(text = text)) +
   scale_fill_manual(
@@ -238,6 +238,40 @@ Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data
 ghg_multi_sig <- lm(Temperature_anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
 summary(ghg_multi_sig)
 
+### PCA Anomaly Code START
+
+#Removing all non numerical data and unecessary variables
+global_numerical_data <- joined_global_data[-c(1, 3:8, 10:13, 15:17)]
+
+#Normalizing Data
+global_normalized_data <- scale(global_numerical_data)
+
+
+#Applying PCA
+pca_global <- princomp(global_normalized_data)
+summary(pca_global) 
+
+#Loading matrix of first 2 components
+pca_global$loadings[, 1:3]
+
+#PCA regression
+anom_pca_regression <- lm(Temperature_anomaly ~ pca_global$scores, data = joined_global_data)
+
+### PCA Anomaly Code END
+
+### PCA WA Temp Code START
+
+datCombo <- Combined |> 
+  select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force)
+normCombo <- scale(datCombo)
+
+data.pca <- princomp(normCombo)
+
+data.pca$loadings[, 1:3]
+
+pcModel <- lm(Temp ~ data.pca$scores, data = Combined)
+
+
 # Define UI for application that draws a histogram
 ui <- dashboardPage(skin = "blue",
   dashboardHeader(title = "Climate Change Dashboard"), 
@@ -245,7 +279,7 @@ sidebar <- dashboardSidebar(
     sidebarMenu(
       menuItem("Global Anomalies", tabName = "anomalies_tab", icon = icon("globe")),
       menuItem("Washington Counties Analysis", tabName = "wa_counties_tab", icon = icon("map")),
-      menuItem("Ocean Temperature Analysis", tabName = "ocean_tab", icon = icon("tint")),
+      menuItem("Principal Components Analysis", tabName = "pca_tab", icon = icon("table")),
       menuItem("Ocean Regression Results", tabName = "ocean_regression_tab", icon = icon("table"))
   )),
   dashboardBody(
@@ -286,15 +320,36 @@ sidebar <- dashboardSidebar(
               )
             )
     ),
-    tabItem(tabName = "ocean_tab",
+    tabItem(tabName = "pca_tab",
             fluidRow(
               box(
-                title = "Ocean Analysis", solidHeader = TRUE,
-                collapsible = TRUE, width = 12, status = "success",
-                DT::dataTableOutput("emissions_ocean_table")
+                title = "Anomalies Principal Components Analysis", solidHeader = TRUE,
+                collapsible = TRUE, width = 6, background = "olive",
+                tags$h4("PCA Loadings"),
+                verbatimTextOutput("pca_anomaly_loading"),
+                tags$h4("PCA Anomaly Regression"),
+                verbatimTextOutput("pca_anomaly"),
+
               ),
-              box(title = "Observations", background = "blue", "Example Text that we can put for analysis paragraphs etc.")
-            )
+              box(
+                title = "WA Temperature Principal Components Analysis", solidHeader = TRUE,
+                collapsible = TRUE, width = 6, background = "olive",
+                tags$h4("PCA Loadings"),
+                verbatimTextOutput("pca_wa_temp_loading"),
+                tags$h4("PCA WA Temperature Regression"),
+                verbatimTextOutput("pca_wa_temp")
+              )
+              ),
+            fluidRow(
+              box(title = "Interpretation of Anomalies PCA", solidHeader = TRUE,
+                  collapsible = TRUE, background = "blue", "For component 1, all variables are increasing at the same rate. Anomaly goes up when Year, Total Rad, and Sea surface temp anomaly increase. 
+                    This is shown where all of component one have the same relative positive loading and coefficient of regression is positive. 
+                    For component 2, Year and Rad increase. Sea surface temp anomaly decreases. Strong anomaly decrease shows as component increases sea temp anomaly will decrease and vice versa. 
+                    Higher component 2 means higher rad force and ppm as time goes, but lower sea temp. The lagging of sea temp means a overall decrease in temp anomaly."
+                    ),
+            
+            box(title = "Interpretation of WA PCA", background = "blue",
+                "Interpretation goes here"))
     ),
     tabItem(tabName = "ocean_regression_tab",
             fluidRow(
@@ -356,16 +411,6 @@ server <- function(input, output) {
     ggplotly(anom_ocean_heat, tooltip = "text")
   })
   
-  output$emissions_ocean_table <- DT::renderDataTable({
-    DT::datatable(
-      joined_global_data,
-      options = list(
-        scrollX = TRUE,
-        autoWidth = TRUE
-      )
-    )
-  })
-  
   output$emit_summary <- renderUI({
     
     tags$img(src = "Annual_Emission.png",
@@ -404,6 +449,24 @@ server <- function(input, output) {
           <br>&ensp;&ensp;&ensp;Source: National Atmospheric and Atmospheric Administration</font></p>")
   })
   
+  output$pca_anomaly <- renderPrint({
+    
+    summary(anom_pca_regression)
+    
+  })
+  
+  output$pca_wa_temp <- renderPrint({
+    
+    summary(pcModel)
+  })
+  
+  output$pca_anomaly_loading <- renderPrint({
+    pca_global$loadings
+  })
+  
+  output$pca_wa_temp_loading <- renderPrint({
+    data.pca$loadings
+  })
   output$ocean_anom_caption <- renderText({
     paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature Anomaly: the difference between a year's average surface temperature from the 1991-2020 mean, in degrees Celsius. 
           <br>&ensp;&ensp;&ensp;Ocean heat is the top 700 meters of the oceans.")
