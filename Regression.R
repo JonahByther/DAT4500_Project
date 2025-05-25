@@ -58,8 +58,8 @@ WA_emit <- emissions |>
   left_join(capita, by = c("Year" = "Year")) |> 
   left_join(WA, by = c("Year" = "Year"))
 
-Combined <- WA_emit |> 
-  filter(Year >= 1979) |> 
+Combined <- WA |> 
+  filter(Year >= 1979 & Year <= 2023) |> 
   left_join(AGGI, by = c("Year" = "Year")) |> 
   left_join(ocean_heat, by = c("Year" = "Year")) |> 
   left_join(sea_surface_temp, by = c("Year" = "Year"))
@@ -146,6 +146,10 @@ Combined |>
   select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force) |> 
   apa.cor.table()
 
+cor.test(Combined$Year, Combined$Sea_Surface_Temp_Anomaly)
+cor.test(Combined$Year, Combined$Total_Rad_Force)
+cor.test(Combined$Total_Rad_Force, Combined$Sea_Surface_Temp_Anomaly)
+
 #VIF
 vif(Combo_model)
 
@@ -162,6 +166,8 @@ data.pca <- princomp(normCombo)
 summary(data.pca)
 
 data.pca$loadings[, 1:3]
+
+get_eigenvalue(data.pca)
 
 #Scree plot
 fviz_eig(data.pca, addlabels = TRUE)
