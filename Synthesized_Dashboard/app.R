@@ -30,26 +30,9 @@ library(DT)
 library(psych)
 library(factoextra)
 
-### Seasonal Anomalies Code - START
+#-------------------------- Seasonal Anomalies Code - START --------------------------#
 
-temp_anomalies <- read.csv("country-level-monthly-temperature-anomalies.csv")
-
-# Rounding to 2 decimal places to replicate DF
-temp_anomalies_v2 <- temp_anomalies |>
-  mutate(across(January:December, ~ round(.x, 2)))
-
-#Tidying Data
-temp_anomalies_v2 <- temp_anomalies_v2 |>
-  pivot_longer(cols = c(January:December), names_to = "Month", values_to = "average_temp") 
-
-#Defining Month Order to display plot correctly
-month_levels <- c("January", "February", "March", "April", "May", "June",
-                  "July", "August", "September", "October", "November", "December")
-
-# Creating Color fill for bars and adding order
-temp_anomalies_v2 <- temp_anomalies_v2 |>
-  mutate(temp_color = ifelse(average_temp < 0, "red", "blue" ),
-         Month = factor(Month, levels = month_levels))
+cleaned_month_anomalies <- read.csv("cleaned_month_anomalies.csv")
 
 #Function for plotting
 season_bar_plot <- function(yr, yr2, season_name){
@@ -62,7 +45,7 @@ season_bar_plot <- function(yr, yr2, season_name){
                           "All Seasons"  = c("January","February", "March", "April", "May", "June", 
                                              "July", "August", "September", "October", "November", "December"))
   
-  p <- temp_anomalies_v2 |>
+  p <- cleaned_month_anomalies|>
     mutate(text = paste("Year:", Year, "</b>",
                         "<br>World:", average_temp, "(\u00B0C)")) |>
     filter(Year >= yr & Year <= yr2, Month %in% season_months) |>
@@ -76,7 +59,9 @@ season_bar_plot <- function(yr, yr2, season_name){
   
 }
 
-### Annual Temperature Anomalies Map Code - START
+#-------------------------- Seasonal Anomalies Code - END --------------------------#
+
+#-------------------------- Annual Temp Anomalies Map - START --------------------------#
 
 AnnTempAnomolies <- read.csv("annual-temperature-anomalies.csv")
 
@@ -112,94 +97,20 @@ function1 <-function(TempYears) {
     style(hoveron = "fill") 
 }
 
-### Annual Anomalies END
+#-------------------------- Annual Temp Anomalies Map - END --------------------------#
 
-### WA County Significance
-WA_county <- read.csv("WA_county.csv")
+#-------------------------- WA County Significance - Start -------------------------#
 
-regression_p_value_table <- function() {
-  result <- tibble(
-    Month = character(),
-    Significant_Counties = integer(),
-    Positive_Slope_Counties = integer(),
-    Negative_Slope_Counties = integer(),
-    Not_Significant = integer()
-  )
-  
-  for (selected_month in c("All Months", month.name)) {
-    sig_counties <- 0
-    pos_slope_counties <- 0
-    neg_slope_counties <- 0
-    not_sig <- 0
-    
-    for (selected_county in unique(WA_county$COUNTY)) {
-      month_num <- match(selected_month, month.name)
-      
-      data <- WA_county |>
-        filter(COUNTY == selected_county & year(DATE) != 2025) |>
-        mutate(Year = year(DATE))
-      
-      if (selected_month != "All Months") {
-        data <- data |> filter(month(DATE) == month_num)
-      }
-      
-      if (nrow(data) > 1 && sum(!is.na(data$TAVG)) > 1) {
-        model <- lm(TAVG ~ Year, data = data)
-        
-        if ("Year" %in% rownames(summary(model)$coefficients)) {
-          p_value <- summary(model)$coefficients["Year", "Pr(>|t|)"]
-          slope <- coef(model)["Year"]
-          
-          if (!is.na(p_value) && p_value < 0.05) {
-            sig_counties <- sig_counties + 1
-            if (slope > 0) pos_slope_counties <- pos_slope_counties + 1
-            else if (slope < 0) neg_slope_counties <- neg_slope_counties + 1
-          }
-          else not_sig <- not_sig + 1
-        }
-      }
-    }
-    
-    result <- result |> add_row(
-      Month = selected_month,
-      Significant_Counties = sig_counties,
-      Positive_Slope_Counties = pos_slope_counties,
-      Negative_Slope_Counties = neg_slope_counties,
-      Not_Significant = not_sig
-    )
-  }
-  
-  return(result)
-}
+cleaned_county_temp <- read.csv("cleaned_county_temp.csv")
 
-significance_table <- regression_p_value_table()
+# Define month levels in order
+month_levels <- c("January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December")
 
-significance_table$Month <- factor(significance_table$Month, levels = month.name)
+# Ensure Month is a factor with correct order
+cleaned_county_temp$Month <- factor(cleaned_county_temp$Month, levels = month_levels)
 
-long_data <- significance_table |>
-  pivot_longer(
-    cols = c(Negative_Slope_Counties, Not_Significant, Positive_Slope_Counties),
-    names_to = "Category",
-    values_to = "Count"
-  )
-
-long_data$Category <- factor(long_data$Category, levels = c("Positive_Slope_Counties",
-                                                            "Not_Significant",
-                                                            "Negative_Slope_Counties"))
-
-month_order <- c("January", "February", "March", "April", "May", "June",
-                 "July", "August", "September", "October", "November", "December")
-
-long_data$Month <- factor(long_data$Month, levels = month_order)
-
-long_data <- long_data |>
-  mutate(Category = dplyr::recode(Category,
-                           "Positive_Slope_Counties" = "Positive Slope Counties",
-                           "Negative_Slope_Counties" = "Negative Slope Counties",
-                           "Not_Significant" = "Not Significant"))
-
-
-county_significance <- long_data |>
+county_significance <- cleaned_county_temp |>
   mutate(text = paste0("Category: ", Category,
                        "\nMonth: ", Month, 
                        "\nCounties: ", Count)) |>
@@ -233,24 +144,13 @@ county_significance <- long_data |>
   
   ggplotly(county_significance, tooltip = "text")
   
-### WA County Significance END
+#-------------------------- WA County Significance - END -------------------------#
 
 ### Global Temp and Sea Regression
 
-emissions_oceans <- read.csv("emissions_oceans.csv")
+joined_global_data <- read.csv("joined_global_data.csv")
+cleaned_wa_pca <- read.csv("cleaned_wa_pca.csv")
 
-annual_global_anomalies <- annual_anomalies |>
-  filter(Entity == "World")
-
-# Rounding to 2 decimal places to replicate DF
-
-# Joining Data
-joined_global_data <- emissions_oceans |>
-  left_join(annual_global_anomalies, by = "Year")
-
-joined_global_data <- joined_global_data |>
-  rename(Total_Rad_Force = Annual_PPM,
-         Temperature_anomaly = Temperature.anomaly)
 # Anomaly Ocean Line Chart
 anom_ocean_heat_df <- joined_global_data |>
   mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",
@@ -267,30 +167,9 @@ anom_ocean_heat <- anom_ocean_heat_df |>
   ylab("Ocean Heat Content (10^22 Joules)") +
   xlab("Temperature Anomaly") +
   theme_minimal()
-
-ocean_heat <- read_csv("ocean-heat_fig-1.csv", skip = 6) |> 
-  filter(Year >= 1979) |> #1979 chosen for smoother joining
-  select(Year, NOAA) |> 
-  rename(Ocean_Heat = NOAA)
-
-sea_surface_temp <- sea |> 
-  filter(Year >= 1979) |> #1979 chosen for smoother joining
-  select(Year, `Annual anomaly`) |> 
-  rename(Sea_Surface_Temp_Anomaly = `Annual anomaly`)
-
-WA_emit <- emissions |> 
-  left_join(capita, by = c("Year" = "Year")) |> 
-  left_join(WA, by = c("Year" = "Year"))
-
-Combined <- WA_emit |> 
-  filter(Year >= 1979) |> 
-  left_join(AGGI, by = c("Year" = "Year")) |> 
-  left_join(ocean_heat, by = c("Year" = "Year")) |> 
-  left_join(sea_surface_temp, by = c("Year" = "Year")) |>
-  rename("Total_Rad_Force" = "Annual_PPM")
   
 #Sea Surface Temp and Rad force Regression Graph
-sea_rad_regression <- Combined |> 
+sea_rad_regression <- cleaned_wa_pca |> 
   ggplot(aes(x = Year, y = Temp)) +
   geom_line(linewidth = .5) +
   geom_smooth(method = "lm", color = "orange") +
@@ -316,7 +195,7 @@ sea_rad_regression <- Combined |>
 
 #Regression Models
 
-Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data = Combined)
+Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data = cleaned_wa_pca)
 
 ghg_multi_sig <- lm(Temperature_anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
 summary(ghg_multi_sig)
@@ -324,11 +203,11 @@ summary(ghg_multi_sig)
 ### PCA Anomaly Code START
 
 #Removing all non numerical data and unecessary variables
-global_numerical_data <- joined_global_data[-c(1, 3:8, 10:13, 15:17)]
+global_numerical_data <- joined_global_data |>
+  select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force)
 
 #Normalizing Data
 global_normalized_data <- scale(global_numerical_data)
-
 
 #Applying PCA
 pca_global <- princomp(global_normalized_data)
@@ -344,7 +223,7 @@ anom_pca_regression <- lm(Temperature_anomaly ~ pca_global$scores, data = joined
 
 ### PCA WA Temp Code START
 
-datCombo <- Combined |> 
+datCombo <- cleaned_wa_pca |> 
   select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force)
 normCombo <- scale(datCombo)
 
@@ -352,7 +231,7 @@ data.pca <- princomp(normCombo)
 
 data.pca$loadings[, 1:3]
 
-pcModel <- lm(Temp ~ data.pca$scores, data = Combined)
+pcModel <- lm(Temp ~ data.pca$scores, data = cleaned_wa_pca)
 
 
 # Define UI for application that draws a histogram

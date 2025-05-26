@@ -1,4 +1,30 @@
-### WA Counties Analysis START
+library(tidyverse)
+library(openintro)
+
+#--------------------- Seasons Anom Data Set
+
+temp_anomalies <- read.csv("country-level-monthly-temperature-anomalies.csv")
+
+# Rounding to 2 decimal places to replicate DF
+temp_anomalies_v2 <- temp_anomalies |>
+  mutate(across(January:December, ~ round(.x, 2)))
+
+#Tidying Data
+temp_anomalies_v2 <- temp_anomalies_v2 |>
+  pivot_longer(cols = c(January:December), names_to = "Month", values_to = "average_temp") 
+
+#Defining Month Order to display plot correctly
+month_levels <- c("January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December")
+
+# Creating Color fill for bars and adding order
+temp_anomalies_v2 <- temp_anomalies_v2 |>
+  mutate(temp_color = ifelse(average_temp < 0, "red", "blue" ),
+         Month = factor(Month, levels = month_levels))
+
+write.csv(temp_anomalies_v2, "cleaned_month_anomalies")
+
+#------------------------ WA County Data Set
 
 WA_county <- read.csv("WA_county.csv")
 
@@ -78,13 +104,26 @@ month_order <- c("January", "February", "March", "April", "May", "June",
 long_data$Month <- factor(long_data$Month, levels = month_order)
 
 long_data <- long_data |>
-  mutate(Category = dplyr::recode(Category,
+  mutate(Category = recode(Category,
                            "Positive_Slope_Counties" = "Positive Slope Counties",
                            "Negative_Slope_Counties" = "Negative Slope Counties",
                            "Not_Significant" = "Not Significant"))
 
-#Downloading county data as new CSV
-  write.csv(long_data, "cleaned_county_temp")
+#--------------- Anom PCA
+emissions_oceans <- read.csv("emissions_oceans.csv")
 
 
+annual_global_anomalies <- annual_anomalies |>
+  filter(Entity == "World")
+
+joined_global_data <- emissions_oceans |>
+  left_join(annual_global_anomalies, by = "Year")
+
+joined_global_data <- joined_global_data |>
+  rename(Temperature_anomaly = Temperature.anomaly)
+
+write.csv(joined_global_data, "joined_global_data.csv")
+
+#----------------- WA Temp Joined PCA
+write.csv(Combined, "cleaned_wa_pca.csv")
 
