@@ -146,7 +146,7 @@ county_significance <- cleaned_county_temp |>
   
 #-------------------------- WA County Significance - END -------------------------#
 
-### Global Temp and Sea Regression
+#-------------------------- Ocean and Temp Regression - START ------------------#
 
 joined_global_data <- read.csv("joined_global_data.csv")
 cleaned_wa_pca <- read.csv("cleaned_wa_pca.csv")
@@ -200,7 +200,7 @@ Combo_model <- lm(Temp ~ Year + Sea_Surface_Temp_Anomaly + Total_Rad_Force, data
 ghg_multi_sig <- lm(Temperature_anomaly ~ Year + Ocean_Heat + Total_Rad_Force, data = joined_global_data)
 summary(ghg_multi_sig)
 
-### PCA Anomaly Code START
+#-------------------- PCA Anomaly Code START ------------------#
 
 #Removing all non numerical data and unecessary variables
 global_numerical_data <- joined_global_data |>
@@ -213,15 +213,15 @@ global_normalized_data <- scale(global_numerical_data)
 pca_global <- princomp(global_normalized_data)
 summary(pca_global) 
 
-#Loading matrix of first 2 components
+#Loading matrix
 pca_global$loadings[, 1:3]
 
 #PCA regression
 anom_pca_regression <- lm(Temperature_anomaly ~ pca_global$scores, data = joined_global_data)
 
-### PCA Anomaly Code END
+#-------------------- PCA Anomaly Code START ------------------#
 
-### PCA WA Temp Code START
+#-------------------- PCA WA State Code START ------------------#
 
 datCombo <- cleaned_wa_pca |> 
   select(Year, Sea_Surface_Temp_Anomaly, Total_Rad_Force)
@@ -233,6 +233,7 @@ data.pca$loadings[, 1:3]
 
 pcModel <- lm(Temp ~ data.pca$scores, data = cleaned_wa_pca)
 
+#-------------------- PCA WA State Code START ------------------#
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(skin = "blue",
@@ -414,14 +415,14 @@ server <- function(input, output) {
     sea_rad_regression
   })
   
-  output$seasons_caption <- renderText({
-    paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature anomaly calculated as difference of specific month average surface temperature from the 1991-2020 mean
-          <br>&ensp;&ensp;&ensp;Source: Our World in Data</font></p>")
+  output$seasons_caption <- renderUI({
+    HTML("<font size='2px;'>&ensp;&ensp;&ensp;Temperature anomaly calculated as difference of specific month average surface temperature from the 1991-2020 mean
+          <br>&ensp;&ensp;&ensp;Source: <a href='https://ourworldindata.org/grapher/global-temperature-anomalies-by-month' style='color:#FFFFFF;'> Our World in Data</a></font></p>")
   })
   
   output$anomalies_caption <- renderText({
     paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature anomaly calculated as difference between a year's average surface temperature from the 1991-2020 mean
-          <br>&ensp;&ensp;&ensp;Source: Our World in Data</font></p>")
+          <br>&ensp;&ensp;&ensp;Source: <a href='https://ourworldindata.org/grapher/annual-temperature-anomalies' style='color:#FFFFFF;'> Our World in Data</a></font></p>")
     })
   
   output$county_caption <- renderText({
@@ -443,7 +444,7 @@ server <- function(input, output) {
   })
   
   output$pca_anomaly_loading <- renderPrint({
-    pca_global$loadings
+    pca_global$loadings[, 1:3]
   })
   
   output$scree_anomalies <- renderPlot({
@@ -465,7 +466,7 @@ server <- function(input, output) {
   })
   
   output$pca_wa_temp_loading <- renderPrint({
-    data.pca$loadings
+    data.pca$loadings[, 1:3]
   })
   output$ocean_anom_caption <- renderText({
     paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature Anomaly: the difference between a year's average surface temperature from the 1991-2020 mean, in degrees Celsius. 
