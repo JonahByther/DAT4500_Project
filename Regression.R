@@ -69,6 +69,10 @@ Combined <- WA |>
 #  left_join(sea_surface_temp, by = c("Year" = "Year"))
 #write.csv(Emissions_Oceans, "emissions_oceans.csv")
 
+#Fixing pca combined dataset
+#cleaned_wa_pca <- Combined
+#write.csv(cleaned_wa_pca, "cleaned_wa_pca.csv")
+
 
 
 #--------------------------------Significance Models---------------------------#
@@ -186,6 +190,9 @@ fviz_pca_var(data.pca, col.var = "cos2",
 #UPDATED PCA MODEL
 pcModel <- lm(Temp ~ data.pca$scores, data = Combined)
 summary(pcModel)
+
+pcModel2 <- lm(Temp ~ data.pca$scores[, 1:2], data = Combined) #only 2 components
+summary(pcModel2)
 
 #These interpretations come from synthesis of loadings AND model results/coefficients
 #Component 1 is when all variables move together in lockstep, temperature just goes up and up; basically average them together
