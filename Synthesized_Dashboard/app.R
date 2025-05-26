@@ -417,19 +417,19 @@ server <- function(input, output) {
   
   output$seasons_caption <- renderUI({
     HTML("<font size='2px;'>&ensp;&ensp;&ensp;Temperature anomaly calculated as difference of specific month average surface temperature from the 1991-2020 mean
-          <br>&ensp;&ensp;&ensp;Source: <a href='https://ourworldindata.org/grapher/global-temperature-anomalies-by-month' style='color:#FFFFFF;'> Our World in Data</a></font></p>")
+          <br>&ensp;&ensp;&ensp;<strong>Source:</strong>  <a href='https://ourworldindata.org/grapher/global-temperature-anomalies-by-month' style='color:#FFFFFF; text-decoration: underline;'> Our World in Data</a></font></p>")
   })
   
   output$anomalies_caption <- renderText({
     paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature anomaly calculated as difference between a year's average surface temperature from the 1991-2020 mean
-          <br>&ensp;&ensp;&ensp;Source: <a href='https://ourworldindata.org/grapher/annual-temperature-anomalies' style='color:#FFFFFF;'> Our World in Data</a></font></p>")
+          <br>&ensp;&ensp;&ensp;<strong>Source:</strong>  <a href='https://ourworldindata.org/grapher/annual-temperature-anomalies' style='color:#FFFFFF; text-decoration: underline;'> Our World in Data</a></font></p>")
     })
   
   output$county_caption <- renderText({
     paste("<font size='2px;'>&ensp;&ensp;&ensp;Summer months are defined as June-August. However, we do see high positive significant slopes in May and September as well. 
     <br>&ensp;&ensp;&ensp;Positive slope refers to a county's slope that is increasing in temperature, or getting hotter. 
           Negative slope refers to a slope that is decreasing in temperature, or getting colder.
-          <br>&ensp;&ensp;&ensp;Source: National Atmospheric and Atmospheric Administration</font></p>")
+          <br>&ensp;&ensp;&ensp;<strong>Source:</strong> <a href='https://www.ncei.noaa.gov/cdo-web/search' style='color:#FFFFFF; text-decoration: underline;'> National Atmospheric and Atmospheric Administration</a></font></p>")
   })
   
   output$pca_anomaly <- renderPrint({
@@ -469,15 +469,24 @@ server <- function(input, output) {
     data.pca$loadings[, 1:3]
   })
   output$ocean_anom_caption <- renderText({
-    paste("<font size='2px;'>&ensp;&ensp;&ensp;Temperature Anomaly: the difference between a year's average surface temperature from the 1991-2020 mean, in degrees Celsius. 
-          <br>&ensp;&ensp;&ensp;Ocean heat is the top 700 meters of the oceans.")
+    paste("<font size='2px;'>
+        &ensp;&ensp;&ensp;Temperature Anomaly: the difference between a year's average surface temperature from the 1991–2020 mean, in degrees Celsius.
+        <br>&ensp;&ensp;&ensp;Ocean heat is the top 700 meters of the oceans.
+        <br>&ensp;&ensp;&ensp;<strong>Sources:</strong>
+        <br>&ensp;&ensp;&ensp;<a href='https://gml.noaa.gov/aggi/aggi.html' style='color:#FFFFFF; text-decoration: underline;'>NOAA – AGGI Emissions Data</a>
+        <br>&ensp;&ensp;&ensp;<a href='https://www.epa.gov/climate-indicators/climate-change-indicators-sea-surface-temperature' style='color:#FFFFFF; text-decoration: underline;'>EPA – Sea Surface Temperature</a>
+        <br>&ensp;&ensp;&ensp;<a href='https://www.epa.gov/climate-indicators/climate-change-indicators-ocean-heat' style='color:#FFFFFF; text-decoration: underline;'>EPA – Ocean Heat</a>")
   })
   
   output$sea_rad_regression_caption <- renderText({
     paste("<font size='2px;'>&ensp;&ensp;&ensp;Sea Surface Temperature Anomaly is calculated by comparing each year's global average sea surface temperature to the average  
     <br>&ensp;&ensp;&ensp;&ensp;surface temperature from 1971-2000. Radiative forcing measures the difference between energy (in the form of radiation) entering
     <br>&ensp;&ensp;&ensp;the atmosphere and leaving the atmosphere. Positive values indicate that there is more energy entering Earth,
-    <br>&ensp;&ensp;&ensp;&ensp;resulting in warming temperature over time.") 
+    <br>&ensp;&ensp;&ensp;&ensp;resulting in warming temperature over time.
+    <br>&ensp;&ensp;&ensp;<strong>Sources:</strong>
+        <br>&ensp;&ensp;&ensp;<a href='https://gml.noaa.gov/aggi/aggi.html' style='color:#FFFFFF; text-decoration: underline;'>NOAA – AGGI Emissions Data</a>
+        <br>&ensp;&ensp;&ensp;<a href='https://www.epa.gov/climate-indicators/climate-change-indicators-sea-surface-temperature' style='color:#FFFFFF; text-decoration: underline;'>EPA – Sea Surface Temperature</a>
+        <br>&ensp;&ensp;&ensp;<a href='https://www.epa.gov/climate-indicators/climate-change-indicators-ocean-heat' style='color:#FFFFFF; text-decoration: underline;'>EPA – Ocean Heat</a>") 
   })
   
   output$combined_regression <- renderPrint({
