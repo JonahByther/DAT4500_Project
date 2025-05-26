@@ -167,14 +167,15 @@ joined_global_data <- emissions_oceans |>
   left_join(annual_global_anomalies, by = "Year")
 
 joined_global_data <- joined_global_data |>
-  rename(Temperature_anomaly = Temperature.anomaly) |>
-  rename(Total_Rad_Force = Annual_PPM)
-
+  rename(Total_Rad_Force = Annual_PPM,
+         Temperature_anomaly = Temperature.anomaly)
 # Anomaly Ocean Line Chart
-anom_ocean_heat <- joined_global_data |>
+anom_ocean_heat_df <- joined_global_data |>
   mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",
                        "\nOcean Heat Content: ", round(Ocean_Heat, 2), " (10<sup>22</sup> Joules)",
-                       "\nYear : ", Year)) |>
+                       "\nYear : ", Year))
+
+anom_ocean_heat <- anom_ocean_heat_df |>
   ggplot(aes(x = Temperature_anomaly, y = Ocean_Heat)) + 
   geom_point(aes(text = text)) +
   geom_line() +
@@ -279,8 +280,9 @@ sidebar <- dashboardSidebar(
     sidebarMenu(
       menuItem("Global Anomalies", tabName = "anomalies_tab", icon = icon("globe")),
       menuItem("Washington Counties Analysis", tabName = "wa_counties_tab", icon = icon("map")),
+      menuItem("Multiple Regression Results", tabName = "ocean_regression_tab", icon = icon("table")),
       menuItem("Principal Components Analysis", tabName = "pca_tab", icon = icon("table")),
-      menuItem("Ocean Regression Results", tabName = "ocean_regression_tab", icon = icon("table"))
+      menuItem("PCA Visualizations", tabName = "pca_visual_tab", icon = icon("table"))
   )),
   dashboardBody(
     tabItems(
@@ -351,6 +353,25 @@ sidebar <- dashboardSidebar(
             box(title = "Interpretation of WA PCA", background = "blue",
                 "Interpretation goes here"))
     ),
+    
+    tabItem(tabName = "pca_visual_tab",
+            fluidRow(
+              box(title = "Scree Plots", solidHeader = TRUE,
+                  collapsible = TRUE, background = "olive",
+                  tags$h4("Global Anomalies"),
+                  plotOutput("scree_anomalies"),
+                  tags$h4("Washington Temperatures"),
+                  plotOutput("scree_wa")
+                  ),
+              box(title = "Biplot of Attributes", solidHeader = TRUE,
+                  collapsible = TRUE, background = "olive",
+                  tags$h4("Global Anomalies"),
+                  plotOutput("bi_plot_anom"),
+                  tags$h4("Washington Temperature"),
+                  plotOutput("bi_plot_wa"))
+              
+            )
+            ),
     tabItem(tabName = "ocean_regression_tab",
             fluidRow(
               box(
@@ -462,6 +483,24 @@ server <- function(input, output) {
   
   output$pca_anomaly_loading <- renderPrint({
     pca_global$loadings
+  })
+  
+  output$scree_anomalies <- renderPlot({
+    fviz_eig(pca_global, addlabels = TRUE)
+  })
+  
+  output$scree_wa <- renderPlot({
+    fviz_eig(data.pca, addlabels = TRUE)
+  })
+  
+  output$bi_plot_anom <- renderPlot({
+    fviz_pca_var(pca_global, col.var = "black", repel = TRUE) +
+      xlim(0, 1.2)
+  })
+  
+  output$bi_plot_wa <- renderPlot({
+    fviz_pca_var(data.pca, col.var = "black", repel = TRUE) +
+      xlim(0, 1.2)
   })
   
   output$pca_wa_temp_loading <- renderPrint({

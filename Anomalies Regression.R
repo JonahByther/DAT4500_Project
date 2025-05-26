@@ -104,7 +104,7 @@ pca_global <- princomp(global_normalized_data)
 summary(pca_global) 
 
 #Loading matrix of first 2 components
-pca_global$loadings[, 1:3]
+pca_global$loadings
 
 #Scree Plot
 fviz_eig(pca_global, addlabels = TRUE)
@@ -122,7 +122,7 @@ fviz_pca_var(pca_global, col.var = "cos2",
              repel = TRUE)
 
 #Regression of PCA
-anom_pca_regression <- lm(Temperature_anomaly ~ pca_global$scores[, 1:3], data = joined_global_data)
+anom_pca_regression <- lm(Temperature_anomaly ~ pca_global$scores, data = joined_global_data)
 summary(anom_pca_regression)
 
 #Explanation for 1

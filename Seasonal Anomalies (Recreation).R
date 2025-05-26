@@ -92,3 +92,13 @@ temp_anomalies_v2 |>
   filter(anomaly_temp == max(anomaly_temp, na.rm = TRUE)) |>
   select(Month, anomaly_temp, Year) |>
   arrange(desc(anomaly_temp))
+
+#Dispalying change over the years 1940-2024
+change_in_years_months <-  temp_anomalies_v2 |>
+  filter(Year %in% c(1940, 2024)) |>
+  group_by(Month) |>
+    summarize(
+      anomaly_1940 = Anomaly[Year == 1940],
+      anomaly_2024 = Anomaly[Year == 2024],
+      percent_change = (anomaly_2024 - anomaly_1940) / abs(anomaly_1940) * 100
+    )
