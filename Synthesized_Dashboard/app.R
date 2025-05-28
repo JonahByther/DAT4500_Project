@@ -16,19 +16,15 @@ library(usmap)
 library(dplyr)
 library(lubridate)
 library(sf)
+library(stats)
 library(scales)
 library(rnaturalearth)
 library(rnaturalearthdata)
-library(supernova)
-library(stats)
-library(scales)
 library(readxl)
-library(dplyr)
-library(car)
-library(apaTables)
-library(DT)
-library(psych)
 library(factoextra)
+library(corrr)
+library(ggcorrplot)
+library(FactoMineR)
 
 #-------------------------- Seasonal Anomalies Code - START --------------------------#
 
@@ -287,19 +283,12 @@ sidebar <- dashboardSidebar(
     tabItem(tabName = "pca_tab",
             fluidRow(
               box(
-                title = "Anomalies Principal Components Analysis", solidHeader = TRUE,
-                collapsible = TRUE, width = 6, background = "olive",
+                title = "Principal Components Analysis: Anomalies and Washington Temperature", solidHeader = TRUE,
+                collapsible = TRUE, width = 12, background = "olive",
                 tags$h4("PCA Loadings"),
                 verbatimTextOutput("pca_anomaly_loading"),
                 tags$h4("PCA Anomaly Regression"),
                 verbatimTextOutput("pca_anomaly"),
-
-              ),
-              box(
-                title = "WA Temperature Principal Components Analysis", solidHeader = TRUE,
-                collapsible = TRUE, width = 6, background = "olive",
-                tags$h4("PCA Loadings"),
-                verbatimTextOutput("pca_wa_temp_loading"),
                 tags$h4("PCA WA Temperature Regression"),
                 verbatimTextOutput("pca_wa_temp")
               )
@@ -320,17 +309,14 @@ sidebar <- dashboardSidebar(
             fluidRow(
               box(title = "Scree Plots", solidHeader = TRUE,
                   collapsible = TRUE, background = "olive",
-                  tags$h4("Global Anomalies"),
+                  tags$h4("Global Anomalies and Washington Temperature"),
                   plotOutput("scree_anomalies"),
-                  tags$h4("Washington Temperatures"),
-                  plotOutput("scree_wa")
                   ),
               box(title = "Biplot of Attributes", solidHeader = TRUE,
                   collapsible = TRUE, background = "olive",
-                  tags$h4("Global Anomalies"),
+                  tags$h4("Global Anomalies and Washington Temperature"),
                   plotOutput("bi_plot_anom"),
-                  tags$h4("Washington Temperature"),
-                  plotOutput("bi_plot_wa"))
+              )
               
             )
             ),
