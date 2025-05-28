@@ -254,8 +254,8 @@ sidebar <- dashboardSidebar(
         title = "Seasonal Anomalies", solidHeader = TRUE, 
         collapsible = TRUE, width = 12, background = "olive",
       sliderInput("yr", "Select Years for Season Map:",
-                  min = min(temp_anomalies_v2$Year),
-                  max = max(temp_anomalies_v2$Year),
+                  min = min(cleaned_month_anomalies$Year),
+                  max = max(cleaned_month_anomalies$Year),
                   value = c(2000, 2020),
                   sep = ""),
       selectInput("season", "Select Season:",
@@ -382,7 +382,6 @@ server <- function(input, output) {
     function1(TempYears = input$TempYears)
   })
   
-
   output$county_barplot <- renderPlotly({
     
     ggplotly(county_significance, tooltip = "text")
@@ -392,23 +391,6 @@ server <- function(input, output) {
   output$ocean_anom_graph <- renderPlotly({
     
     ggplotly(anom_ocean_heat, tooltip = "text")
-  })
-  
-  output$emit_summary <- renderUI({
-    
-    tags$img(src = "Annual_Emission.png",
-             style = "width:100%; height:auto;")
-  })
-  
-  output$emit_per_capita_summary <- renderUI({
-    
-    tags$img(src = "Per_Capita.png",
-             style = "width:100%; height:auto;")
-  })
-  
-  output$temp_summary <- renderPrint({
-    tags$img(src = "Average_Temp.png",
-             style = "width:100%; height:auto;")
   })
   
   output$sea_rad_regression_graph <- renderPlot({
