@@ -287,27 +287,17 @@ sidebar <- dashboardSidebar(
                 collapsible = TRUE, width = 12, background = "olive",
                 tags$h4("PCA Loadings"),
                 verbatimTextOutput("pca_anomaly_loading"),
-                tags$h4("PCA Anomaly Regression"),
+                tags$h4("PCA Anomaly Regression Results"),
                 verbatimTextOutput("pca_anomaly"),
-                tags$h4("PCA WA Temperature Regression"),
+                tags$h4("PCA Washington Temperature Regression Results"),
                 verbatimTextOutput("pca_wa_temp")
               )
               ),
-            fluidRow(
-              box(title = "Interpretation of Anomalies PCA", solidHeader = TRUE,
-                  collapsible = TRUE, background = "blue", "For component 1, all variables are increasing at the same rate. Anomaly goes up when Year, Total Rad, and Sea surface temp anomaly increase. 
-                    This is shown where all of component one have the same relative positive loading and coefficient of regression is positive. 
-                    For component 2, Year and Rad increase. Sea surface temp anomaly decreases. Strong anomaly decrease shows as component increases sea temp anomaly will decrease and vice versa. 
-                    Higher component 2 means higher rad force and ppm as time goes, but lower sea temp. The lagging of sea temp means a overall decrease in temp anomaly."
-                    ),
-            
-            box(title = "Interpretation of WA PCA", background = "blue",
-                "Interpretation goes here"))
     ),
     
     tabItem(tabName = "pca_visual_tab",
             fluidRow(
-              box(title = "Scree Plots", solidHeader = TRUE,
+              box(title = "Scree Plot: Importance of Components", solidHeader = TRUE,
                   collapsible = TRUE, background = "olive",
                   tags$h4("Global Anomalies and Washington Temperature"),
                   plotOutput("scree_anomalies"),
