@@ -148,27 +148,35 @@ joined_global_data <- read.csv("joined_global_data.csv")
 cleaned_wa_pca <- read.csv("cleaned_wa_pca.csv")
 
 # Anomaly Ocean Line Chart
-anom_ocean_heat_df <- joined_global_data |>
-  mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",
-                       "\nOcean Heat Content: ", round(Ocean_Heat, 2), " (10<sup>22</sup> Joules)",
-                       "\nYear : ", Year))
+#anom_ocean_heat_df <- joined_global_data |>
+ # mutate(text = paste0("Temperature Anomaly: ", round(Temperature_anomaly, 2), " (\u00B0C)",
+                     #  "\nOcean Heat Content: ", round(Ocean_Heat, 2), " (10<sup>22</sup> Joules)",
+                      # "\nYear : ", Year))
 
-anom_ocean_heat <- anom_ocean_heat_df |>
-  ggplot(aes(x = Temperature_anomaly, y = Ocean_Heat)) + 
-  geom_point(aes(text = text)) +
-  geom_line() +
-  geom_smooth(se = FALSE) +
-  labs(
-       subtitle = "Temperature Anomaly: the difference between a year's average \nsurface temperature from the 1991-2020 mean, in degrees Celsius. \nOcean heat is the top 700 meters of the oceans.") +
-  ylab("Ocean Heat Content (10^22 Joules)") +
-  xlab("Temperature Anomaly") +
-  theme_minimal()
+anom_ocean_heat <- joined_global_data |>
+  ggplot(aes(x = Year, y = Temperature_anomaly)) + 
+  geom_line(linewidth = .5) +
+  geom_smooth(method = "lm") +
+  geom_point(aes(color = Sea_Surface_Temp_Anomaly, size = Total_Rad_Force)) +
+  geom_point(aes(size = Total_Rad_Force), shape = 1, stroke = .85) +
+  scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Sea Surface\nTemperature\nAnomaly (°F)") +
+  scale_size(range = c(1,5), name = "Global Radiative\nForcing (W/m^2)") +
+ # labs(
+  #     subtitle = "Temperature Anomaly: the difference between a year's average \nsurface temperature from the 1991-2020 mean, in degrees Celsius. \nOcean heat is the top 700 meters of the oceans.") +
+  ylab("Temperature Anomaly (°C)") +
+  xlab("Year") +
+  theme_classic() +
+  theme(
+    plot.title.position = "plot",
+    plot.caption.position = "plot",
+    plot.caption = element_text(hjust = 0)
+  )
   
 #Sea Surface Temp and Rad force Regression Graph
 sea_rad_regression <- cleaned_wa_pca |> 
   ggplot(aes(x = Year, y = Temp)) +
   geom_line(linewidth = .5) +
-  geom_smooth(method = "lm", color = "orange4") +
+  geom_smooth(method = "lm") +
   geom_point(aes(color = Sea_Surface_Temp_Anomaly, size = Total_Rad_Force)) +
   geom_point(aes(size = Total_Rad_Force), shape = 1, stroke = .85) +
   scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Sea Surface\nTemperature\nAnomaly (°F)") +
@@ -293,6 +301,15 @@ sidebar <- dashboardSidebar(
                 verbatimTextOutput("pca_wa_temp")
               )
               ),
+            fluidRow(
+              box(title = "Interpretation of Anomalies and WA Temperature PCA", solidHeader = TRUE,
+                  collapsible = TRUE, background = "blue", "For component 1, all variables are increasing at the same rate. Anomaly goes up when Year, Total Rad, and Sea surface temp anomaly increase. 
+                    This is shown where all of component one have the same relative positive loading and coefficient of regression is positive. 
+                    For component 2, Year and Rad increase. Sea surface temp anomaly decreases. Strong anomaly decrease shows as component increases sea temp anomaly will decrease and vice versa. 
+                    Higher component 2 means higher rad force and ppm as time goes, but lower sea temp. The lagging of sea temp means a overall decrease in temp anomaly."
+                    )
+            )
+          
     ),
     
     tabItem(tabName = "pca_visual_tab",
@@ -313,9 +330,9 @@ sidebar <- dashboardSidebar(
     tabItem(tabName = "ocean_regression_tab",
             fluidRow(
               box(
-                title = "Temperature Anomaly vs. Ocean Heat", solidHeader = TRUE, 
+                title = "Significant Predictors of Global Temperature Anomaly", solidHeader = TRUE, 
                 collapsible = TRUE, width = 8, background = "olive",
-                plotlyOutput("ocean_anom_graph"),
+                plotOutput("ocean_anom_graph"),
                 fluidRow(htmlOutput("ocean_anom_caption"))
               ),
               box(
@@ -364,9 +381,10 @@ server <- function(input, output) {
     
   })
   
-  output$ocean_anom_graph <- renderPlotly({
+  output$ocean_anom_graph <- renderPlot({
     
-    ggplotly(anom_ocean_heat, tooltip = "text")
+    #ggplotly(anom_ocean_heat, tooltip = "text")
+    anom_ocean_heat
   })
   
   output$sea_rad_regression_graph <- renderPlot({
