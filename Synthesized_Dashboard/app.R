@@ -168,7 +168,7 @@ anom_ocean_heat <- anom_ocean_heat_df |>
 sea_rad_regression <- cleaned_wa_pca |> 
   ggplot(aes(x = Year, y = Temp)) +
   geom_line(linewidth = .5) +
-  geom_smooth(method = "lm", color = "orange") +
+  geom_smooth(method = "lm", color = "orange4") +
   geom_point(aes(color = Sea_Surface_Temp_Anomaly, size = Total_Rad_Force)) +
   geom_point(aes(size = Total_Rad_Force), shape = 1, stroke = .85) +
   scale_color_gradientn(colors = c("yellow", 'red', "red4"), name = "Sea Surface\nTemperature\nAnomaly (°F)") +
