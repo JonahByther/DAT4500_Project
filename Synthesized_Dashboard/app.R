@@ -303,10 +303,12 @@ sidebar <- dashboardSidebar(
               ),
             fluidRow(
               box(title = "Interpretation of Anomalies and WA Temperature PCA", solidHeader = TRUE,
-                  collapsible = TRUE, background = "blue", "For component 1, all variables are increasing at the same rate. Anomaly goes up when Year, Total Rad, and Sea surface temp anomaly increase. 
-                    This is shown where all of component one have the same relative positive loading and coefficient of regression is positive. 
-                    For component 2, Year and Rad increase. Sea surface temp anomaly decreases. Strong anomaly decrease shows as component increases sea temp anomaly will decrease and vice versa. 
-                    Higher component 2 means higher rad force and ppm as time goes, but lower sea temp. The lagging of sea temp means a overall decrease in temp anomaly."
+                  collapsible = TRUE, background = "blue", 
+                    "Component 1 averages the individual effects of time, sea surface temperature, and radiative forcing. Given the positive regression coefficients,
+                    when these three variables increase together at a steady pace, we can expect to see global and Washington temperatures increase. Component 2 accounts for when time and radiative
+                    forcing are increasing together at a steady pace, but sea surface temperature is not increasing as fast as the other variables. When this situation occurs, both models will adjust
+                    the temperature prediction downward, indicating that temperatures will decrease when sea surface temperatures are lower than expected.
+                    "
                     )
             )
           
