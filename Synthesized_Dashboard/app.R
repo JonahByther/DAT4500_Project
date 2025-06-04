@@ -449,7 +449,6 @@ server <- function(input, output) {
   output$ocean_anom_caption <- renderText({
     paste("<font size='2px;'>
         &ensp;&ensp;&ensp;Temperature Anomaly: the difference between a year's average surface temperature from the 1991–2020 mean, in degrees Celsius.
-        <br>&ensp;&ensp;&ensp;Ocean heat is the top 700 meters of the oceans.
         <br>&ensp;&ensp;&ensp;<strong>Sources:</strong>
         <br>&ensp;&ensp;&ensp;<a href='https://gml.noaa.gov/aggi/aggi.html' style='color:#FFFFFF; text-decoration: underline;'>NOAA – AGGI Emissions Data</a>
         <br>&ensp;&ensp;&ensp;<a href='https://www.epa.gov/climate-indicators/climate-change-indicators-sea-surface-temperature' style='color:#FFFFFF; text-decoration: underline;'>EPA – Sea Surface Temperature</a>
