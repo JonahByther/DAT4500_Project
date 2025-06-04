@@ -303,7 +303,7 @@ sidebar <- dashboardSidebar(
               ),
             fluidRow(
               box(title = "Interpretation of Anomalies and WA Temperature PCA", solidHeader = TRUE,
-                  collapsible = TRUE, background = "blue", 
+                  collapsible = TRUE, background = "blue", width = 12,
                     "Component 1 averages the individual effects of time, sea surface temperature, and radiative forcing. Given the positive regression coefficients,
                     when these three variables increase together at a steady pace, we can expect to see global and Washington temperatures increase. Component 2 accounts for when time and radiative
                     forcing are increasing together at a steady pace, but sea surface temperature is not increasing as fast as the other variables. When this situation occurs, both models will adjust

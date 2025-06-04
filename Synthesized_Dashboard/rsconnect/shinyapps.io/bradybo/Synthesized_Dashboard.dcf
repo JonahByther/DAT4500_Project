@@ -5,7 +5,7 @@ account: bradybo
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 14828088
-bundleId: 10359069
+bundleId: 10393664
 url: https://bradybo.shinyapps.io/Synthesized_Dashboard/
 version: 1
 asMultiple: FALSE
